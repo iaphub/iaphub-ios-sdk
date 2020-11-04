@@ -1,0 +1,16 @@
+PODS:
+  - Iaphub (1.0.0)
+
+DEPENDENCIES:
+  - Iaphub (from `../`)
+
+EXTERNAL SOURCES:
+  Iaphub:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  Iaphub: 30d88425d30855d12600d0bf8e49742c2aade869
+
+PODFILE CHECKSUM: 066b8980076d5dc5ef6d0cc3057aedd984b90fb7
+
+COCOAPODS: 1.9.3
