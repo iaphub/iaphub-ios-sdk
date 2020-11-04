@@ -11,7 +11,7 @@ No more complex backend development to validate receipts, focus on your app inst
   s.homepage          = 'https://www.iaphub.com'
   s.license           = { :type => 'MIT', :file => 'LICENSE' }
   s.author            = { 'Iaphub' => 'support@iaphub.com' }
-  s.source            = { :git => 'https://github.com/iaphub/Iaphub-iOS.git', :tag => s.version.to_s }
+  s.source            = { :git => 'https://github.com/iaphub/iaphub-ios-sdk.git', :tag => s.version.to_s }
   s.documentation_url = "https://www.iaphub.com/docs"
 
   s.ios.deployment_target = '9.0'
