@@ -74,6 +74,10 @@ import Foundation
                }
                // Get the new transaction from the response
                transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
+               // If transaction not found, look if it is a product change
+               if (transaction == nil) {
+                  transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
+               }
             }
             // Finish receipt
             finish(error, shouldFinishReceipt, transaction)
