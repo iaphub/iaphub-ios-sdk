@@ -15,22 +15,22 @@ import StoreKit
    public var token: String
    // Product sku
    public var sku: String
-   // If the receipt comes from a restore
-   public var isRestore: Bool
+   // Receipt context
+   public var context: String
    
    // Convert the object to a dictionary
    var dictionary: [String: Any] {
      return [
       "token": token,
       "sku": sku,
-      "isRestore": isRestore
+      "context": context
      ]
    }
 
-   init(token: String, sku: String, isRestore: Bool) {
+   init(token: String, sku: String, context: String) {
       self.token = token
       self.sku = sku
-      self.isRestore = isRestore
+      self.context = context
    }
 
 }

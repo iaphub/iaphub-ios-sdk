@@ -162,8 +162,14 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       guard let token = receiptToken else {
          return
       }
-      // Create receipt object
-      let receipt = IHReceipt(token: token, sku: transaction.payment.productIdentifier, isRestore: false)
+      // Detect receipt context
+      var context = "refresh"
+      let buyRequest = self.buyRequests.first(where: { $0.payment.productIdentifier == transaction.payment.productIdentifier })
+      if (buyRequest != nil) {
+         context = "purchase"
+      }
+      // Create receipt
+      let receipt = IHReceipt(token: token, sku: transaction.payment.productIdentifier, context: context)
       // Call receipt listener
       self.receiptListener?(receipt, { (err, shouldFinish, response) in
          // Finish transaction
@@ -303,7 +309,7 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
          return restoreRequest(IHError(IHErrors.unknown, message: "receipt not found"))
       }
       // Create receipt object
-      let receipt = IHReceipt(token: token, sku: "", isRestore: true)
+      let receipt = IHReceipt(token: token, sku: "", context: "restore")
       // Call receipt listener
       self.receiptListener?(receipt, { (err, shouldFinish, response) in
          // Call request callback back to the main thread
