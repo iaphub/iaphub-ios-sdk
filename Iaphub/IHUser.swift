@@ -25,6 +25,8 @@ class IHUser {
    var fetchRequests: [((IHError?) -> Void)] = []
    // Indicates if the user is currently being fetched
    var isFetching: Bool = false
+   // Indicates if the user needs to be fetched
+   var needsFetch: Bool = false
    // Latest receipt post date
    var receiptPostDate: Date? = nil
    // API
@@ -199,6 +201,8 @@ class IHUser {
             }
             return product.skProduct != nil
          })
+         // Mark needsFetch as false
+         self.needsFetch = false
          // Call completion
          completion(nil)
       })
@@ -213,6 +217,8 @@ class IHUser {
             force ||
             // User hasn't been fetched yet
             self.fetchDate == nil ||
+            // User marked as outdated
+            self.needsFetch == true ||
             // User hasn't been refreshed since the interval
             (Date(timeIntervalSince1970: self.fetchDate!.timeIntervalSince1970 + interval) < Date()) ||
             // Receit post date more recent than the user fetch date
@@ -235,7 +241,16 @@ class IHUser {
     Set tags
    */
    public func setTags(_ tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
-      self.api.setUserTag(tags, completion)
+      self.api.setUserTag(tags, { (err) in
+         // Check for error
+         guard err == nil else {
+            return completion(err)
+         }
+         // Mark as outdated
+         self.needsFetch = true
+         // Call completion
+         completion(nil)
+      })
    }
    
    /**
