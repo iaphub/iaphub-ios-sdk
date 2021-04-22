@@ -16,6 +16,8 @@ import StoreKit
    // Purchase date
    @objc public var purchaseDate: Date?
    
+   // Subscription platform
+   @objc public var platform: String?
    // Subscription expiration date
    @objc public var expirationDate: Date?
    // If the subscription will auto renew
@@ -34,6 +36,7 @@ import StoreKit
       try super.init(data)
       self.purchase = data["purchase"] as? String
       self.purchaseDate = data["purchaseDate"] as? Date
+      self.platform = data["platform"] as? String
       self.expirationDate = data["expirationDate"] as? Date
       self.isSubscriptionRenewable = (data["isSubscriptionRenewable"] as? Bool) ?? false
       self.isSubscriptionRetryPeriod = (data["isSubscriptionRetryPeriod"] as? Bool) ?? false

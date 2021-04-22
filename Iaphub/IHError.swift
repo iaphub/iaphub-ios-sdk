@@ -69,6 +69,7 @@ public enum IHErrors : String {
    case product_not_available = "The requested product isn't available for purchase"
    case receipt_validation_failed = "The receipt has been processed on IAPHUB but something went wrong (check the receipt of the IAPHUB dashboard)"
    case receipt_invalid = "The receipt has been processed on IAPHUB but is invalid"
+   case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
 
    var code: String {
       get { return String(describing: self) }

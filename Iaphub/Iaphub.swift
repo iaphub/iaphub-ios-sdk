@@ -119,39 +119,51 @@ import Foundation
    /**
     Buy product
     */
-   @objc public class func buy(_ sku: String, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
+   @objc public class func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
       // Check the sdk is started
       guard shared.isStarted == true else {
          return completion(IHError(IHErrors.unknown, message: "sdk not started"), nil)
       }
-      // Launch purchase
-      shared.iap.buy(sku, { (err, response) in
-         // Check error
+      // Refresh user
+      shared.user.refresh({ (err, fetched) in
+         // Check if there is an error
          guard err == nil else {
             return completion(err, nil)
          }
-         // Check response
-         guard let response = response else {
-            return completion(IHError(IHErrors.unknown, message: "no response"), nil)
+         // Check cross platform conflicts
+         let conflictedSubscription = shared.user.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
+         if (crossPlatformConflict && conflictedSubscription != nil) {
+            return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
          }
-         // Cast response to receipt transaction
-         let receiptTransaction = response as? IHReceiptTransaction
-         // Check the cast is a success
-         guard receiptTransaction != nil else {
-            return completion(IHError(IHErrors.unknown, message: "no receipt found"), nil)
-         }
-         // Look for the product of the receipt transaction
-         var product = shared.user.productsForSale.first(where: {$0.sku == receiptTransaction?.sku})
-         // If not found look in the active products
-         if (product == nil) {
-            product = shared.user.activeProducts.first(where: {$0.sku == receiptTransaction?.sku})
-         }
-         // Assign the skProduct of the transaction
-         if (product?.skProduct != nil) {
-            receiptTransaction?.setSKProduct(product!.skProduct!)
-         }
-         // Call completion
-         completion(nil, receiptTransaction)
+         // Launch purchase
+         shared.iap.buy(sku, { (err, response) in
+            // Check error
+            guard err == nil else {
+               return completion(err, nil)
+            }
+            // Check response
+            guard let response = response else {
+               return completion(IHError(IHErrors.unknown, message: "no response"), nil)
+            }
+            // Cast response to receipt transaction
+            let receiptTransaction = response as? IHReceiptTransaction
+            // Check the cast is a success
+            guard receiptTransaction != nil else {
+               return completion(IHError(IHErrors.unknown, message: "no receipt found"), nil)
+            }
+            // Look for the product of the receipt transaction
+            var product = shared.user.productsForSale.first(where: {$0.sku == receiptTransaction?.sku})
+            // If not found look in the active products
+            if (product == nil) {
+               product = shared.user.activeProducts.first(where: {$0.sku == receiptTransaction?.sku})
+            }
+            // Assign the skProduct of the transaction
+            if (product?.skProduct != nil) {
+               receiptTransaction?.setSKProduct(product!.skProduct!)
+            }
+            // Call completion
+            completion(nil, receiptTransaction)
+         })
       })
    }
    

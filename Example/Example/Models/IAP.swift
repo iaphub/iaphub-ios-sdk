@@ -67,7 +67,7 @@ class IAP: ObservableObject {
          return
       }
       self.skuProcessing = sku
-      Iaphub.buy(sku, { (err, transaction) in
+      Iaphub.buy(sku: sku, { (err, transaction) in
          print("--> buy error: ", err?.message)
          print("--> buy transaction: ", transaction)
          self.skuProcessing = ""
