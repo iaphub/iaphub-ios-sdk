@@ -238,6 +238,23 @@ class IHUser {
    }
    
    /**
+    Get active products
+   */
+   public func getActiveProducts(includeSubscriptionStates: [String] = []) -> [IHActiveProduct] {
+      let subscriptionStates = ["active", "grace_period"] + includeSubscriptionStates
+      let activeProducts = self.activeProducts.filter({ (activeProduct) -> Bool in
+         // Return product if it has no subscription state
+         guard let subscriptionState = activeProduct.subscriptionState else {
+            return true
+         }
+         // Otherwise return product only if the state is in the list
+         return subscriptionStates.contains(subscriptionState)
+      })
+      
+      return activeProducts
+   }
+   
+   /**
     Set tags
    */
    public func setTags(_ tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {

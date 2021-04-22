@@ -182,7 +182,7 @@ import Foundation
    /**
     Get active products
     */
-   @objc public class func getActiveProducts(_ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
+   @objc public class func getActiveProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
       // Check the sdk is started
       guard shared.isStarted == true else {
          return completion(IHError(IHErrors.unknown, message: "sdk not started"), nil)
@@ -201,17 +201,17 @@ import Foundation
             // If we have active renewable subscriptions, refresh every minute
             if (subscriptions.count > 0) {
                shared.user.refresh(interval: 60, { (err, fetched) in
-                  completion(err, shared.user.activeProducts)
+                  completion(err, shared.user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
                })
             }
             // Otherwise return the products
             else {
-               completion(nil, shared.user.activeProducts)
+               completion(nil, shared.user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
             }
          }
          // Otherwise return the products
          else {
-            completion(nil, shared.user.activeProducts)
+            completion(nil, shared.user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
          }
       })
    }

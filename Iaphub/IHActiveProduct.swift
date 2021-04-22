@@ -28,9 +28,11 @@ import StoreKit
    @objc public var isSubscriptionGracePeriod: Bool = false
    // Subscription product of the next renewal (only defined if different than the current product)
    @objc public var subscriptionRenewalProduct: String?
-   // subscriptionRenewalProduct sku
+   // SubscriptionRenewalProduct sku
    @objc public var subscriptionRenewalProductSku: String?
-   
+   // Subscription state
+   @objc public var subscriptionState: String?
+
    
    required init(_ data: Dictionary<String, Any>) throws {
       try super.init(data)
@@ -42,6 +44,7 @@ import StoreKit
       self.isSubscriptionRetryPeriod = (data["isSubscriptionRetryPeriod"] as? Bool) ?? false
       self.subscriptionRenewalProduct = data["subscriptionRenewalProduct"] as? String
       self.subscriptionRenewalProductSku = data["subscriptionRenewalProductSku"] as? String
+      self.subscriptionState = data["subscriptionState"] as? String
    }
 
 }
