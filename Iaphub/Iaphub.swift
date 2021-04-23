@@ -68,15 +68,39 @@ import Foundation
                if (receiptResponse.status == "invalid") {
                   error = IHError(IHErrors.receipt_invalid)
                }
-               // Check if the receipt is anything else than a success
-               if (receiptResponse.status != "success") {
-                  error = IHError(IHErrors.receipt_validation_failed)
+               // Check if the receipt is failed
+               else if (receiptResponse.status == "failed") {
+                  error = IHError(IHErrors.receipt_failed)
                }
-               // Get the new transaction from the response
-               transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
-               // If transaction not found, look if it is a product change
-               if (transaction == nil) {
-                  transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
+               // Check if the receipt is stale
+               else if (receiptResponse.status == "stale") {
+                  error = IHError(IHErrors.receipt_stale)
+               }
+               // Check any other status different than success
+               else if (receiptResponse.status != "success") {
+                  error = IHError(IHErrors.unknown, message: "Receipt validation failed")
+                  shouldFinishReceipt = false
+               }
+               // Get transaction if we're in a purchase context
+               if (error == nil && receipt.context == "purchase") {
+                  // Get the new transaction from the response
+                  transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
+                  // If transaction not found, look if it is a product change
+                  if (transaction == nil) {
+                     transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
+                  }
+                  // Otherwise we have an error
+                  if (transaction == nil) {
+                     // Check if it is because of a subscription already active
+                     let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku && $0.expirationDate != nil && $0.expirationDate! > Date()})
+                     if (oldTransaction != nil) {
+                        error = IHError(IHErrors.product_already_purchased)
+                     }
+                     // Otherwise it means the product sku wasn't in the receipt
+                     else {
+                        error = IHError(IHErrors.transaction_not_found)
+                     }
+                  }
                }
             }
             // Finish receipt

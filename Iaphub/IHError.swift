@@ -67,9 +67,12 @@ public enum IHErrors : String {
    case deferred_payment = "The payment has been deferred (awaiting approval from parental control)"
    case product_already_owned = "Couldn't buy product because it has been bought in the past but hasn't been consumed (restore needed)"
    case product_not_available = "The requested product isn't available for purchase"
-   case receipt_validation_failed = "The receipt has been processed on IAPHUB but something went wrong (check the receipt of the IAPHUB dashboard)"
-   case receipt_invalid = "The receipt has been processed on IAPHUB but is invalid"
+   case receipt_failed = "Receipt validation failed, receipt processing will be automatically retried if possible"
+   case receipt_invalid = "Receipt is invalid"
+   case receipt_stale = "Receipt is stale, no purchases still valid were found"
    case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
+   case product_already_purchased = "Product already purchased, if not returned in the active products it may be owned by a different user (restore needed)"
+   case transaction_not_found = "Transaction not found, the product sku wasn't in the receipt, the purchase failed"
 
    var code: String {
       get { return String(describing: self) }
