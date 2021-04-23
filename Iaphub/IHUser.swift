@@ -188,19 +188,15 @@ class IHUser {
             // If the product has been found set skProduct
             product?.setSKProduct(skProduct)
          })
-         // Assign new products and filter products with no skProduct
+         // Filter products for sale with no skProduct
          self.productsForSale = productsForSale.filter({ (product) in
             if (product.skProduct == nil) {
-               print("Product sku '\(product.sku)' not returned by StoreKit, product ignored")
+               print("Itunes did not return the product '\(product.sku)', the product has been filtered, if the sku is valid your Itunes account or sandbox environment is probably not configured properly (https://iaphub.com/docs/set-up-ios/configure-sandbox-testing)")
             }
             return product.skProduct != nil
          })
-         self.activeProducts = activeProducts.filter({ (product) in
-            if (product.skProduct == nil) {
-               print("Product sku '\(product.sku)' not returned by StoreKit, product ignored")
-            }
-            return product.skProduct != nil
-         })
+         // No need to filter active products
+         self.activeProducts = activeProducts
          // Mark needsFetch as false
          self.needsFetch = false
          // Call completion
