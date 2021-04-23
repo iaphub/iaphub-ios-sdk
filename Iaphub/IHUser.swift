@@ -208,6 +208,7 @@ class IHUser {
     Refresh user
    */
    public func refresh(interval: Double = 60 * 60 * 24, force: Bool = false, _ completion: @escaping (IHError?, Bool) -> Void) {
+      // Check if we need to fetch the user
       if (
             // Refresh forced
             force ||
@@ -221,14 +222,33 @@ class IHUser {
             (self.receiptPostDate != nil && self.receiptPostDate! > self.fetchDate!)
       ) {
          self.fetch({ (err) in
-            // Return an error only if the user has never been fetched
-            if (err != nil && self.fetchDate == nil) {
-               completion(err, false)
-            } else {
-               completion(nil, err == nil ? true : false)
+            // Check if there is an error
+            if (err != nil) {
+               // Return an error if the user has never been fetched
+               if (self.fetchDate == nil) {
+                  completion(err, false)
+               }
+               // Otherwise check if there is an expired subscription in the active products
+               else {
+                  let expiredSubscription = self.activeProducts.first(where: { $0.expirationDate != nil && $0.expirationDate! < Date()})
+                  // If we have an expired subscription, return an error
+                  if (expiredSubscription != nil) {
+                     completion(err, false)
+                  }
+                  // Otherwise return no error
+                  else {
+                     completion(nil, false)
+                  }
+               }
+            }
+            // Otherwise it's a success
+            else {
+               completion(nil, true)
             }
          })
-      } else {
+      }
+      // Otherwise no need to fetch the user
+      else {
          completion(nil, false)
       }
    }
