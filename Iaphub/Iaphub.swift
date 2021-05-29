@@ -22,6 +22,7 @@ import Foundation
    var sdk: String = "ios"
    var sdkVersion: String = "1.0.0"
    var isStarted = false
+   var deviceParams: Dictionary<String, String> = [:]
 
    override private init() {
       self.iap = IHIAP()
@@ -137,6 +138,30 @@ import Foundation
       // Otherwise update the id
       shared.user = IHUser(userId)
       shared.saveUserId(userId)
+   }
+   
+   /**
+    Set device params
+    */
+   @objc public class func setDeviceParams(_ params: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
+      // Check the sdk is started
+      guard shared.isStarted == true else {
+         return completion(IHError(IHErrors.unknown, message: "sdk not started"))
+      }
+      var hasChange = false;
+      var deviceParams: Dictionary<String, String> = [:]
+      // Set device params
+      for (key, value) in params {
+         if (value != shared.deviceParams["params.\(key)"]) {
+            hasChange = true;
+         }
+         deviceParams["params.\(key)"] = value
+      }
+      shared.deviceParams = deviceParams
+      // Reset the user cache if there is any change
+      if (hasChange) {
+         shared.user.resetCache()
+      }
    }
    
    /**

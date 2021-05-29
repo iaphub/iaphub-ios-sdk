@@ -279,8 +279,8 @@ class IHUser {
          guard err == nil else {
             return completion(err)
          }
-         // Mark as outdated
-         self.needsFetch = true
+         // Reset cache
+         self.resetCache()
          // Call completion
          completion(nil)
       })
@@ -300,6 +300,13 @@ class IHUser {
          // Parse and return receipt response
          completion(nil, IHReceiptResponse(data))
       })
+   }
+   
+   /**
+    Reset cache
+   */
+   public func resetCache() {
+      self.needsFetch = true;
    }
    
 }

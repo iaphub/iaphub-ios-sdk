@@ -63,6 +63,7 @@ class IHAPI {
       self.network.send(
          type: "GET",
          route: "/app/\(sdk.appId)/user/\(user.id)",
+         params: sdk.deviceParams,
          completion
       )
    }
