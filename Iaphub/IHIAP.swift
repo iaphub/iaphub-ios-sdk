@@ -16,16 +16,57 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    var buyRequests: [(payment: SKPayment, completion: (IHError?, Any?) -> Void)] = []
    var restoreRequest: ((IHError?) -> Void)? = nil
    var receiptListener: ((IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void)? = nil
+   var purchasedTransactionQueue: IHQueue? = nil
+   var failedTransactionQueue: IHQueue? = nil
+   var resumeQueuesTimer: Timer? = nil
+   var resumeQueuesImmediately: Bool = false
+   var lastReceipt: IHReceipt? = nil
    var isObserving = false
+   var isPaused = false
 
    /**
     Start IAP
     */
    public func start(_ receiptListener: @escaping (IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void) {
-      // Save listener
+      // Create purchased transaction queue
+      self.purchasedTransactionQueue = IHQueue({ (item, completion) in
+         guard let transaction = (item.data as? SKPaymentTransaction) else {
+            return completion()
+         }
+         self.processPurchasedTransaction(transaction, item.date, completion)
+      })
+      // Create failed transaction queue
+      self.failedTransactionQueue = IHQueue({ (item, completion) in
+         guard let transaction = (item.data as? SKPaymentTransaction) else {
+            return completion()
+         }
+         self.processFailedTransaction(transaction, completion)
+      })
+      // Save receipt listener
       self.receiptListener = receiptListener
-      // Start observing iap
-      self.startObserving()
+      // Add observers
+      if (self.isObserving == false) {
+         self.isObserving = true
+         // Listen to StoreKit queue
+         SKPaymentQueue.default().add(self)
+         // Pause IAP when the app goes to background
+         NotificationCenter.default.addObserver(self, selector: #selector(self.pause), name: UIApplication.willResignActiveNotification, object: nil)
+         // Resume IAP when the app does to foreground
+         NotificationCenter.default.addObserver(self, selector: #selector(self.resume), name: UIApplication.didBecomeActiveNotification, object: nil)
+      }
+   }
+   
+   /**
+    Stop IAP
+    */
+   public func stop() {
+      if (self.isObserving == false) {
+         return
+      }
+      self.isObserving = false
+      SKPaymentQueue.default().remove(self)
+      NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+      NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
    }
    
    /**
@@ -79,29 +120,75 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    /***************************** PRIVATE ******************************/
    
    /**
-    Start observing  receipts
+    Pause
     */
-   private func startObserving() {
-      if (self.isObserving == true) {
+   @objc private func pause() {
+      if (self.isPaused == true) {
          return
       }
-      self.isObserving = true
-      SKPaymentQueue.default().add(self)
-      // Stop observating iap when the app is about to terminate
-      NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] (_) in
-         self?.stopObserving()
+      // Update app state
+      self.isPaused = true
+      // Pause queues
+      self.pauseQueues()
+   }
+   
+   /**
+    Resume
+    */
+   @objc private func resume() {
+      if (self.isPaused == false) {
+         return
+      }
+      // Update app state
+      self.isPaused = false
+      // Resume queues immediately if defined
+      if (self.resumeQueuesImmediately) {
+         self.resumeQueues()
+         self.resumeQueuesImmediately = false
+      }
+      // Otherwise resume queues automatically in 10 seconds
+      else {
+         // Invalidate resume queues timer
+         self.resumeQueuesTimer?.invalidate()
+         // Fore queues resume after 30 seconds
+         self.resumeQueuesTimer = Timer.scheduledTimer(timeInterval: 30, target: self, selector: #selector(self.resumeQueues), userInfo: nil, repeats: false)
       }
    }
    
    /**
-    Stop observing  receipts
+    Resume queues
     */
-   private func stopObserving() {
-      if (self.isObserving == false) {
-         return
+   @objc private func resumeQueues() {
+      // Invalidate resume queues timer
+      self.resumeQueuesTimer?.invalidate()
+      // Resume purchased transaction queue first
+      self.purchasedTransactionQueue?.resume({ () in
+         // And then failed transaction queue
+         self.failedTransactionQueue?.resume()
+      })
+   }
+   
+   /**
+    Process queues or mark as ready for process when the app is in foreground
+    */
+   private func resumeQueuesASAP() {
+      if (self.isPaused == true) {
+         self.resumeQueuesImmediately = true
       }
-      self.isObserving = false
-      SKPaymentQueue.default().remove(self)
+      else {
+         self.resumeQueues()
+      }
+   }
+   
+   /**
+    Pause queues
+    */
+   private func pauseQueues() {
+      // Pause queues
+      self.purchasedTransactionQueue?.pause()
+      self.failedTransactionQueue?.pause()
+      // Invalidate resume queues timer
+      self.resumeQueuesTimer?.invalidate()
    }
    
    /**
@@ -155,7 +242,7 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    /**
     Process purchased transaction
     */
-   private func processPurchasedTransaction(_ transaction: SKPaymentTransaction) {
+   private func processPurchasedTransaction(_ transaction: SKPaymentTransaction, _ date: Date, _ completion: @escaping () -> Void) {
       // Get receipt token
       let receiptToken = self.getReceiptToken()
       // Check receipt token is not nil
@@ -170,42 +257,88 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       }
       // Create receipt
       let receipt = IHReceipt(token: token, sku: transaction.payment.productIdentifier, context: context)
+      // Prevent unnecessary receipts processing
+      if (context == "refresh" &&
+         (self.lastReceipt != nil) &&
+         (self.lastReceipt?.token == receipt.token) &&
+         (self.lastReceipt?.processDate != nil && Date(timeIntervalSince1970: self.lastReceipt!.processDate!.timeIntervalSince1970 + 0.5) > date)
+      ) {
+         // Finish transaction if the last receipt finished successfully
+         if (self.lastReceipt?.isFinished == true) {
+            self.finishTransaction(transaction)
+         }
+         // Call completion
+         return completion()
+      }
+      // Update last receipt
+      self.lastReceipt = receipt
       // Call receipt listener
       self.receiptListener?(receipt, { (err, shouldFinish, response) in
          // Finish transaction
          if (shouldFinish) {
             self.finishTransaction(transaction)
          }
+         // Update receipt properties
+         receipt.isFinished = shouldFinish
+         receipt.processDate = Date()
          // Process buy request
          self.processBuyRequest(transaction, err, response)
+         // Call completion
+         completion()
       })
    }
+
    
    /**
     Process failed transaction
     */
-   private func processFailedTransaction(_ transaction: SKPaymentTransaction) {
-      /// Create deferred transaction error
+   private func processFailedTransaction(_ transaction: SKPaymentTransaction, _ completion: @escaping () -> Void) {
       var err = IHError(IHErrors.unknown)
-      // Get SKError
-      if let skError = transaction.error as? SKError {
-         err = IHError(skError);
+      // Check if it is a deferred transaction error
+      if (transaction.transactionState == SKPaymentTransactionState.deferred) {
+         err = IHError(IHErrors.deferred_payment)
+      }
+      // Otherwise check SKError
+      else {
+         if let skError = transaction.error as? SKError {
+            err = IHError(skError);
+         }
       }
       // Process buy request
       self.processBuyRequest(transaction, err, nil)
-      // Finish transaction
-      self.finishTransaction(transaction)
+      // Call completion
+      completion()
    }
    
    /**
-    Process deferred transaction
+    Add purchased transaction to queue
     */
-   private func processDeferredTransaction(_ transaction: SKPaymentTransaction) {
-      // Create deferred transaction error
-      let err = IHError(IHErrors.deferred_payment)
-      // Process buy request
-      self.processBuyRequest(transaction, err, nil)
-      // There is no need to finish a deferred transaction
+   private func addPurchasedTransactionToQueue(_ transaction: SKPaymentTransaction) {
+      // Add purchased transaction to queue
+      self.purchasedTransactionQueue?.add(transaction)
+      // Resume queues ASAP
+      self.resumeQueuesASAP()
+   }
+   
+   /**
+    Add failed transaction to queue
+    */
+   private func addFailedTransactionToQueue(_ transaction: SKPaymentTransaction) {
+      // We can directly finish the transaction (except for a deferred transaction, not needed)
+      if (transaction.transactionState != SKPaymentTransactionState.deferred) {
+         self.finishTransaction(transaction)
+      }
+      // Add failed transaction to queue
+      self.failedTransactionQueue?.add(transaction)
+      // Resume queues queues ASAP if it isn't an unknown error (error trigerred during an interrupted purchase) or a deferred purchase
+      if let skError = transaction.error as? SKError {
+         if (skError.code != SKError.unknown) {
+            self.resumeQueuesASAP()
+         }
+      }
+      else if (transaction.transactionState != SKPaymentTransactionState.deferred) {
+         self.resumeQueuesASAP()
+      }
    }
    
    /***************************** SKProductsRequestDelegate ******************************/
@@ -261,16 +394,15 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
                // Transaction started, no need to do anything here
                break
             case .purchased:
-               // Transaction purchased
-               self.processPurchasedTransaction(transaction)
+               self.addPurchasedTransactionToQueue(transaction)
                break
             case .failed:
-               // The transaction purchase has failed
-               self.processFailedTransaction(transaction)
+               // Add failed transaction to queue
+               self.addFailedTransactionToQueue(transaction)
                break
             case .deferred:
-               // The transaction has been deferred (awaiting approval from parental control)
-               self.processDeferredTransaction(transaction)
+               // Add failed transaction to queue, the transaction has been deferred (awaiting approval from parental control)
+               self.addFailedTransactionToQueue(transaction)
                break
             case .restored:
                // The transaction has already been purchased and is restored

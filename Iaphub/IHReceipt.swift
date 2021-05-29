@@ -17,6 +17,10 @@ import StoreKit
    public var sku: String
    // Receipt context
    public var context: String
+   // Receipt is finished
+   public var isFinished: Bool
+   // Receipt process date
+   public var processDate: Date?
    
    // Convert the object to a dictionary
    var dictionary: [String: Any] {
@@ -31,6 +35,7 @@ import StoreKit
       self.token = token
       self.sku = sku
       self.context = context
+      self.isFinished = false
    }
 
 }

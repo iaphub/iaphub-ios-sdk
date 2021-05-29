@@ -16,6 +16,8 @@
 		96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDAD25276C9D00A0795A /* IHReceipt.swift */; };
 		96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDB12527A78100A0795A /* IHActiveProduct.swift */; };
 		96DFDDB82527BB4B00A0795A /* IHReceiptResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDB72527BB4B00A0795A /* IHReceiptResponse.swift */; };
+		96E16E3B2631EE440003C857 /* IHQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E16E3A2631EE440003C857 /* IHQueue.swift */; };
+		96E16E3F26334AAD0003C857 /* IHUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E16E3E26334AAD0003C857 /* IHUtil.swift */; };
 		96FD8C9524DD9F9400122612 /* Iaphub.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FD8C8B24DD9F9400122612 /* Iaphub.framework */; };
 		96FD8C9A24DD9F9400122612 /* IaphubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FD8C9924DD9F9400122612 /* IaphubTests.swift */; };
 		96FD8CBE24DDA3EC00122612 /* Iaphub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FD8CBD24DDA3EC00122612 /* Iaphub.swift */; };
@@ -43,6 +45,8 @@
 		96DFDDAD25276C9D00A0795A /* IHReceipt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHReceipt.swift; sourceTree = "<group>"; };
 		96DFDDB12527A78100A0795A /* IHActiveProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHActiveProduct.swift; sourceTree = "<group>"; };
 		96DFDDB72527BB4B00A0795A /* IHReceiptResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHReceiptResponse.swift; sourceTree = "<group>"; };
+		96E16E3A2631EE440003C857 /* IHQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHQueue.swift; sourceTree = "<group>"; };
+		96E16E3E26334AAD0003C857 /* IHUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHUtil.swift; sourceTree = "<group>"; };
 		96FD8C8B24DD9F9400122612 /* Iaphub.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Iaphub.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		96FD8C9424DD9F9400122612 /* IaphubTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IaphubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		96FD8C9924DD9F9400122612 /* IaphubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IaphubTests.swift; sourceTree = "<group>"; };
@@ -104,6 +108,8 @@
 				96FD8CBF24DDA4CF00122612 /* IHAPI.swift */,
 				96CFA0B324FBF3B100793E42 /* IHIAP.swift */,
 				96FD8CC324DDA8D800122612 /* IHNetwork.swift */,
+				96E16E3A2631EE440003C857 /* IHQueue.swift */,
+				96E16E3E26334AAD0003C857 /* IHUtil.swift */,
 			);
 			path = Iaphub;
 			sourceTree = "<group>";
@@ -231,12 +237,14 @@
 				96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */,
 				96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */,
 				96CFA0B424FBF3B200793E42 /* IHIAP.swift in Sources */,
+				96E16E3B2631EE440003C857 /* IHQueue.swift in Sources */,
 				96CFA0B224F89AC000793E42 /* IHError.swift in Sources */,
 				96DFDDA2252390CA00A0795A /* IHProductPricing.swift in Sources */,
 				96FD8CC424DDA8D800122612 /* IHNetwork.swift in Sources */,
 				96DFDDB82527BB4B00A0795A /* IHReceiptResponse.swift in Sources */,
 				96CFA0A824F82BAA00793E42 /* IHProduct.swift in Sources */,
 				96FD8CC024DDA4CF00122612 /* IHAPI.swift in Sources */,
+				96E16E3F26334AAD0003C857 /* IHUtil.swift in Sources */,
 				96FD8CBE24DDA3EC00122612 /* Iaphub.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

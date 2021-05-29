@@ -114,6 +114,13 @@ import Foundation
       // Mark as started
       shared.isStarted = true
    }
+   
+   /**
+    Stop IAPHUB
+    */
+   @objc public class func stop() {
+      shared.iap.stop();
+   }
 
    /**
     Set user id
