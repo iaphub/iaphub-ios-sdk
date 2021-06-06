@@ -415,6 +415,14 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    }
    
    /**
+    Triggered when a user initiated an in-app purchase from the App Store.
+    */
+   func paymentQueue(_ queue: SKPaymentQueue, shouldAddStorePayment payment: SKPayment, for product: SKProduct) -> Bool {
+      // Return true to continue the transaction in the app
+      return true
+   }
+   
+   /**
     Triggered when the restore failed
     */
    func paymentQueue(_ queue: SKPaymentQueue, restoreCompletedTransactionsFailedWithError error: Error) {
