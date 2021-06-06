@@ -79,6 +79,7 @@ class IHAPI {
          type: "POST",
          route: "/app/\(sdk.appId)/user/\(user.id)/receipt",
          params: receipt,
+         timeout: 45.0,
          completion
       )
    }

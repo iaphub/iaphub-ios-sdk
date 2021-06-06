@@ -45,4 +45,26 @@ class IHUtil {
          next!()
       }
    }
+   
+   /*
+    * Retry task multiple times until it succeed
+    */
+   static func retry(times: Int, delay: Int, task: @escaping(@escaping (Bool, IHError?, Any?) -> Void) -> Void, completion: @escaping (IHError?, Any?) -> Void) {
+      task({ (shouldRetry, error, data) in
+         // If there is no error it is a success
+         if (error == nil) {
+            completion(nil, data)
+         }
+         // If time left retry
+         else if (times > 0 && shouldRetry == true) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(delay)) {
+               retry(times: times - 1, delay: delay, task: task, completion: completion)
+            }
+         }
+         // Otherwise it failed
+         else {
+            completion(error, data)
+         }
+      })
+   }
 }

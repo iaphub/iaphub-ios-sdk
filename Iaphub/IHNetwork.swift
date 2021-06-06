@@ -44,12 +44,29 @@ class IHNetwork {
    /**
     Send a request
    */
-   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
-      self.sendRequest(type: type, route: route, params: params) { (err, data) in
-         DispatchQueue.main.async {
-            completion(err, data)
+   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+      // Retry request up to 3 times with a delay of 1 second
+      IHUtil.retry(
+         times: 3,
+         delay: 1,
+         task: { (callback) in
+            self.sendRequest(type: type, route: route, params: params, timeout: timeout) { (err, data, httpResponse) in
+               // Retry request if the request failed or we received a 5XX status code
+               if (err != nil && (httpResponse?.statusCode ?? 0) >= 500) {
+                  callback(true, err, data)
+               }
+               // Otherwise do not retry
+               else {
+                  callback(false, err, data)
+               }
+            }
+         },
+         completion: { (err, data) in
+            DispatchQueue.main.async {
+               completion(err, data as? [String: Any])
+            }
          }
-      }
+      )
    }
    
    /***************************** PRIVATE ******************************/
@@ -109,46 +126,56 @@ class IHNetwork {
    /**
     Send a request
    */
-   private func sendRequest(type: String, route: String, params: Dictionary<String, Any> = [:], _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+   private func sendRequest(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double, _ completion: @escaping (IHError?, [String: Any]?, HTTPURLResponse?) -> Void) {
       do {
          // Create url
          guard let url = URL(string: self.endpoint + route) else {
-            return completion(IHError(IHErrors.network_error, message: "url invalid"), nil)
+            return completion(IHError(IHErrors.network_error, message: "url invalid"), nil, nil)
          }
          // Create request
          let request = try (type == "GET") ? self.createGetRequest(url: url, params: params) : self.createPostRequest(url: url, params: params)
          // Set up the session
-         let session = URLSession.shared
+         let sessionConfig = URLSessionConfiguration.default
+         sessionConfig.timeoutIntervalForResource = timeout
+         let session = URLSession(configuration: sessionConfig)
          // Create task
          let task = session.dataTask(with: request) { (data, response, error) in
             // Check for any errors
             guard error == nil else {
-               return completion(IHError(IHErrors.network_error, message: "request failed"), nil)
+               return completion(IHError(IHErrors.network_error, message: "request failed"), nil, nil)
+            }
+            // Get http response
+            guard let httpResponse = response as? HTTPURLResponse else {
+               return completion(IHError(IHErrors.network_error, message: "http response invalid"), nil, nil)
+            }
+            // Check http response code
+            if (httpResponse.statusCode < 200 || httpResponse.statusCode > 299) {
+               return completion(IHError(IHErrors.network_error, message: "http status code failed"), nil, httpResponse)
             }
             // Check we have a response
             guard let data = data else {
-               return completion(IHError(IHErrors.network_error, message: "response empty"), nil)
+               return completion(IHError(IHErrors.network_error, message: "response empty"), nil, httpResponse)
             }
             // Process the response
             do {
                // Parse JSON
                guard let responseData = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-                  return completion(IHError(IHErrors.network_error, message: "response parsing failed"), nil)
+                  return completion(IHError(IHErrors.network_error, message: "response parsing failed"), nil, httpResponse)
                }
                // Check if the response returned an error
                if let error = responseData["error"] as? String {
-                  return completion(IHError(message: "The IAPHUB server returned an error", code: error), nil)
+                  return completion(IHError(message: "The IAPHUB server returned an error", code: error), nil, httpResponse)
                }
                // Otherwise the request is successful, return the data
-               return completion(nil, responseData)
+               return completion(nil, responseData, httpResponse)
             } catch  {
-               return completion(IHError(IHErrors.network_error, message: "response invalid"), nil)
+               return completion(IHError(IHErrors.network_error, message: "response invalid"), nil, httpResponse)
             }
          }
          // Launch task
          task.resume();
       } catch {
-         return completion(error as? IHError, nil)
+         return completion(error as? IHError, nil, nil)
       }
     }
     
