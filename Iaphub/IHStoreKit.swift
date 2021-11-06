@@ -1,5 +1,5 @@
 //
-//  IHIAP.swift
+//  IHStoreKit.swift
 //  Iaphub
 //
 //  Created by iaphub on 8/30/20.
@@ -9,13 +9,14 @@
 import Foundation
 import StoreKit
 
-class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
+class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    
    var products: [SKProduct] = []
    var getProductsRequests: [(request: SKProductsRequest, completion: (IHError?, [SKProduct]?) -> Void)] = []
    var buyRequests: [(payment: SKPayment, completion: (IHError?, Any?) -> Void)] = []
    var restoreRequest: ((IHError?) -> Void)? = nil
-   var receiptListener: ((IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void)? = nil
+   var onReceipt: ((IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void)? = nil
+   var onBuyRequest: ((String) -> Void)? = nil
    var purchasedTransactionQueue: IHQueue? = nil
    var failedTransactionQueue: IHQueue? = nil
    var resumeQueuesTimer: Timer? = nil
@@ -27,7 +28,10 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    /**
     Start IAP
     */
-   public func start(_ receiptListener: @escaping (IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void) {
+   public func start(
+      onReceipt: @escaping (IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void,
+      onBuyRequest: @escaping (String) -> Void
+   ) {
       // Create purchased transaction queue
       self.purchasedTransactionQueue = IHQueue({ (item, completion) in
          guard let transaction = (item.data as? SKPaymentTransaction) else {
@@ -42,17 +46,14 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
          }
          self.processFailedTransaction(transaction, completion)
       })
-      // Save receipt listener
-      self.receiptListener = receiptListener
+      // Save listeners
+      self.onReceipt = onReceipt
+      self.onBuyRequest = onBuyRequest
       // Add observers
       if (self.isObserving == false) {
          self.isObserving = true
          // Listen to StoreKit queue
          SKPaymentQueue.default().add(self)
-         // Pause IAP when the app goes to background
-         NotificationCenter.default.addObserver(self, selector: #selector(self.pause), name: UIApplication.willResignActiveNotification, object: nil)
-         // Resume IAP when the app does to foreground
-         NotificationCenter.default.addObserver(self, selector: #selector(self.resume), name: UIApplication.didBecomeActiveNotification, object: nil)
       }
    }
    
@@ -65,38 +66,26 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       }
       self.isObserving = false
       SKPaymentQueue.default().remove(self)
-      NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
-      NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
    }
    
    /**
-    Buy product
+    Get product
     */
-   public func buy(_ sku: String, _ completion: @escaping (IHError?, Any?) -> Void) {
+   public func getProduct(_ sku: String, _ completion: @escaping (IHError?, SKProduct?) -> Void) {
       let product = self.products.first(where: {$0.productIdentifier == sku})
       
-      // Return an error if the product doesn't exist
-      if (product == nil) {
-         return completion(IHError(IHErrors.product_not_available), nil)
+      if (product != nil) {
+         return completion(nil, product)
       }
-      // Return an error if the user is not allowed to make payments
-      if (self.canMakePayments() == false) {
-         return completion(IHError(IHErrors.billing_unavailable), nil)
-      }
-      // Otherwise process the purchase
-      let payment = SKPayment(product: product!)
-      // Add buy request
-      self.buyRequests.append((payment: payment, completion: completion))
-      // Add payment to queue
-      SKPaymentQueue.default().add(payment)
-   }
-
-   /**
-    Restore completed transactions
-    */
-   public func restore(_ completion: @escaping (IHError?) -> Void) {
-      self.restoreRequest = completion;
-      SKPaymentQueue.default().restoreCompletedTransactions()
+      self.getProducts([sku], { (err, products) in
+         guard let products = products else {
+            return completion(err, nil)
+         }
+         if (products.count == 0) {
+            return completion(IHError(IHErrors.product_not_available), nil)
+         }
+         completion(nil, products[0])
+      })
    }
    
    /**
@@ -111,18 +100,50 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    }
    
    /**
+    Buy product
+    */
+   public func buy(_ sku: String, _ completion: @escaping (IHError?, Any?) -> Void) {
+      // Return an error if the user is not allowed to make payments
+      if (self.canMakePayments() == false) {
+         return completion(IHError(IHErrors.billing_unavailable), nil)
+      }
+      // Product product of sku
+      self.getProduct(sku, { (err, product) in
+         // Check product
+         guard let product = product else {
+            return completion(err, nil)
+         }
+         // Otherwise process the purchase
+         let payment = SKPayment(product: product)
+         // Add buy request
+         self.buyRequests.append((payment: payment, completion: completion))
+         // Add payment to queue
+         SKPaymentQueue.default().add(payment)
+      })
+   }
+
+   /**
+    Restore completed transactions
+    */
+   public func restore(_ completion: @escaping (IHError?) -> Void) {
+      if (self.restoreRequest != nil) {
+         return completion(IHError(IHErrors.restore_processing))
+      }
+      self.restoreRequest = completion;
+      SKPaymentQueue.default().restoreCompletedTransactions()
+   }
+   
+   /**
     Check if the user can make a payment
     */
    public func canMakePayments() -> Bool {
       return SKPaymentQueue.canMakePayments()
    }
-   
-   /***************************** PRIVATE ******************************/
-   
+
    /**
     Pause
     */
-   @objc private func pause() {
+   public func pause() {
       if (self.isPaused == true) {
          return
       }
@@ -135,7 +156,7 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    /**
     Resume
     */
-   @objc private func resume() {
+   public func resume() {
       if (self.isPaused == false) {
          return
       }
@@ -154,6 +175,19 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
          self.resumeQueuesTimer = Timer.scheduledTimer(timeInterval: 30, target: self, selector: #selector(self.resumeQueues), userInfo: nil, repeats: false)
       }
    }
+   
+   /**
+    Stop IAP
+    */
+   public func presentCodeRedemptionSheet(_ completion: @escaping (IHError?) -> Void) {
+      if #available(iOS 14.0, *) {
+          SKPaymentQueue.default().presentCodeRedemptionSheet()
+      } else {
+         return completion(IHError(IHErrors.code_redemption_unavailable))
+      }
+   }
+   
+   /***************************** PRIVATE ******************************/
    
    /**
     Resume queues
@@ -235,7 +269,10 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       self.buyRequests.removeAll(where: { $0.payment ==  buyRequest?.payment})
       // Call request callback back to the main thread
       DispatchQueue.main.async {
-         buyRequest?.completion(err, response)
+         // If found call the buy request
+         if (buyRequest != nil) {
+            buyRequest?.completion(err, response)
+         }
       }
    }
    
@@ -243,17 +280,18 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
     Process purchased transaction
     */
    private func processPurchasedTransaction(_ transaction: SKPaymentTransaction, _ date: Date, _ completion: @escaping () -> Void) {
-      // Get receipt token
-      let receiptToken = self.getReceiptToken()
-      // Check receipt token is not nil
-      guard let token = receiptToken else {
-         return
-      }
       // Detect receipt context
       var context = "refresh"
       let buyRequest = self.buyRequests.first(where: { $0.payment.productIdentifier == transaction.payment.productIdentifier })
       if (buyRequest != nil) {
          context = "purchase"
+      }
+      // Get receipt token
+      let receiptToken = self.getReceiptToken()
+      // Check receipt token is not nil
+      guard let token = receiptToken else {
+         self.processBuyRequest(transaction, IHError(IHErrors.unexpected, message: "Impossible to get receipt token"), nil)
+         return completion()
       }
       // Create receipt
       let receipt = IHReceipt(token: token, sku: transaction.payment.productIdentifier, context: context)
@@ -273,7 +311,7 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       // Update last receipt
       self.lastReceipt = receipt
       // Call receipt listener
-      self.receiptListener?(receipt, { (err, shouldFinish, response) in
+      self.onReceipt?(receipt, { (err, shouldFinish, response) in
          // Finish transaction
          if (shouldFinish) {
             self.finishTransaction(transaction)
@@ -293,16 +331,15 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
     Process failed transaction
     */
    private func processFailedTransaction(_ transaction: SKPaymentTransaction, _ completion: @escaping () -> Void) {
-      var err = IHError(IHErrors.unknown)
+      var err: IHError? = nil
+
       // Check if it is a deferred transaction error
       if (transaction.transactionState == SKPaymentTransactionState.deferred) {
          err = IHError(IHErrors.deferred_payment)
       }
       // Otherwise check SKError
       else {
-         if let skError = transaction.error as? SKError {
-            err = IHError(skError);
-         }
+         err = IHError(transaction.error);
       }
       // Process buy request
       self.processBuyRequest(transaction, err, nil)
@@ -354,7 +391,12 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       // Call request callback back to the main thread
       if (item != nil) {
          DispatchQueue.main.async {
-            item?.completion(IHError(error), nil)
+            if let skError = error as? SKError {
+               item?.completion(IHError(skError), nil)
+            }
+            else {
+               item?.completion(IHError(error), nil)
+            }
          }
       }
    }
@@ -418,8 +460,10 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
     Triggered when a user initiated an in-app purchase from the App Store.
     */
    func paymentQueue(_ queue: SKPaymentQueue, shouldAddStorePayment payment: SKPayment, for product: SKProduct) -> Bool {
-      // Return true to continue the transaction in the app
-      return true
+      // Trigged onBuyRequest event if defined
+      self.onBuyRequest?(payment.productIdentifier)
+      // Return false to prevent purchase from starting automatically
+      return false
    }
    
    /**
@@ -429,9 +473,15 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       guard let restoreRequest = self.restoreRequest else {
          return;
       }
+      self.restoreRequest = nil
       // Call request callback back to the main thread
       DispatchQueue.main.async {
-         restoreRequest(IHError(error));
+         if let skError = error as? SKError {
+            restoreRequest(IHError(skError));
+         }
+         else {
+            restoreRequest(IHError(error));
+         }
       }
    }
    
@@ -442,16 +492,17 @@ class IHIAP: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
       guard let restoreRequest = self.restoreRequest else {
          return;
       }
+      self.restoreRequest = nil
       // Get receipt token
       let receiptToken = self.getReceiptToken()
       // Check receipt token is not nil
       guard let token = receiptToken else {
-         return restoreRequest(IHError(IHErrors.unknown, message: "receipt not found"))
+         return restoreRequest(IHError(IHErrors.unexpected, message: "receipt not found"))
       }
       // Create receipt object
       let receipt = IHReceipt(token: token, sku: "", context: "restore")
       // Call receipt listener
-      self.receiptListener?(receipt, { (err, shouldFinish, response) in
+      self.onReceipt?(receipt, { (err, shouldFinish, response) in
          // Call request callback back to the main thread
          DispatchQueue.main.async {
             restoreRequest(err);

@@ -5,3 +5,9 @@ target 'Example' do
    pod 'Iaphub', :path => '../'
 
 end
+
+target 'ExampleTests' do
+
+   pod 'Iaphub', :path => '../'
+
+end

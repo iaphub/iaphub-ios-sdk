@@ -12,72 +12,71 @@ import UIKit
 class IHAPI {
    
    var network: IHNetwork
-   var user: IHUser?
+   var user: IHUser
    
-   init() {
-      self.network = IHNetwork(endpoint: "https://api.iaphub.com/v1");
-   }
-
-   /**
-    Configure
-   */
-   public func configure(user: IHUser) {
+   init(user: IHUser) {
       self.user = user
-      
-      guard let sdk = self.user?.sdk else {
-         return;
-      }
-      self.network.setHeaders(["Authorization": "ApiKey \(sdk.apiKey)"])
+      self.network = IHNetwork(endpoint: IHConfig.api);
+      self.network.setHeaders(["Authorization": "ApiKey \(self.user.sdk.apiKey)"])
       self.network.setParams([
-         "environment": sdk.environment,
+         "environment": self.user.sdk.environment,
          "platform": "ios",
-         "sdk": sdk.sdk,
-         "sdkVersion": sdk.sdkVersion,
+         "sdk": self.user.sdk.sdk,
+         "sdkVersion": self.user.sdk.sdkVersion,
          "osVersion": UIDevice.current.systemVersion
       ])
-   }
-   
-   /**
-    Set user tag
-   */
-   public func setUserTag(_ tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
-      guard let user = self.user, let sdk = user.sdk else {
-         return completion(IHError(IHErrors.unknown, message: "api not configured"))
-      }
-      self.network.send(
-         type: "POST",
-         route: "/app/\(sdk.appId)/user/\(user.id)",
-         params: tags
-      ) {(err, data) -> Void in
-         completion(err);
-      }
    }
    
    /**
     Get user
    */
    public func getUser( _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
-      guard let user = self.user, let sdk = user.sdk else {
-         return completion(IHError(IHErrors.unknown, message: "api not configured"), nil)
+      var params: [String: Any] = [:]
+      for (key, value) in self.user.sdk.deviceParams {
+         params["params.\(key)"] = value
       }
+      
       self.network.send(
          type: "GET",
-         route: "/app/\(sdk.appId)/user/\(user.id)",
-         params: sdk.deviceParams,
+         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)",
+         params: params,
          completion
       )
+   }
+   
+   /**
+    Login
+   */
+   public func login(_ userId: String, _ completion: @escaping (IHError?) -> Void) {
+      self.network.send(
+         type: "POST",
+         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/login",
+         params: ["userId": userId]
+      ) {(err, data) -> Void in
+         completion(err);
+      }
+   }
+   
+   /**
+    Post tags
+   */
+   public func postTags(_ tags: Dictionary<String, Any>, _ completion: @escaping (IHError?) -> Void) {
+      self.network.send(
+         type: "POST",
+         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/tags",
+         params: ["tags": tags]
+      ) {(err, data) -> Void in
+         completion(err);
+      }
    }
    
    /**
     Post receipt
    */
    public func postReceipt(_ receipt: Dictionary<String, Any>, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
-      guard let user = self.user, let sdk = user.sdk else {
-         return completion(IHError(IHErrors.unknown, message: "api not configured"), nil)
-      }
       self.network.send(
          type: "POST",
-         route: "/app/\(sdk.appId)/user/\(user.id)/receipt",
+         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/receipt",
          params: receipt,
          timeout: 45.0,
          completion
@@ -88,12 +87,9 @@ class IHAPI {
     Post receipt
    */
    public func postPricing(_ pricing: Dictionary<String, Any>, _ completion: @escaping (IHError?) -> Void) {
-      guard let user = self.user, let sdk = user.sdk else {
-         return completion(IHError(IHErrors.unknown, message: "api not configured"))
-      }
       self.network.send(
          type: "POST",
-         route: "/app/\(sdk.appId)/user/\(user.id)/pricing",
+         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/pricing",
          params: pricing
       )  {(err, data) -> Void in
          completion(err);

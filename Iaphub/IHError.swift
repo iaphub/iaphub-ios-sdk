@@ -9,26 +9,40 @@
 import Foundation
 import StoreKit
 
-@objc public class IHError: NSObject, Error {
+@objc public class IHError: NSObject, LocalizedError {
    
    @objc public let message: String
    @objc public let code: String
+   
+   public var errorDescription: String? {
+      get {
+         return "\(self.message) (code: \(self.code))"
+      }
+   }
 
-   init(message: String, code: String = "unknown") {
+   init(message: String, code: String = "unknown", delegate: Bool = true) {
       self.message = message
       self.code = code
+      super.init()
+      if (delegate == true) {
+         self.triggerDelegate()
+      }
    }
    
-   init(_ error: IHErrors, message: String = "") {
+   init(_ error: IHErrors, message: String = "", delegate: Bool = true) {
       if (message != "") {
          self.message = error.message + ", " + message;
       } else {
          self.message = error.message;
       }
       self.code = error.code
+      super.init()
+      if (delegate == true) {
+         self.triggerDelegate()
+      }
    }
    
-   init(_ error: SKError) {
+   init(_ error: SKError, delegate: Bool = true) {
       switch error.code {
          case .paymentCancelled:
             self.message = IHErrors.user_cancelled.message;
@@ -43,36 +57,55 @@ import StoreKit
             self.code = IHErrors.network_error.code;
             break
          default:
-            self.message = "An unexpected error has happened, StoreKit error: " + String(describing: error.code);
-            self.code = IHErrors.unknown.code;
+         self.message = "An unexpected error has happened, StoreKit error: " + error.localizedDescription;
+            self.code = IHErrors.unexpected.code;
             break
+      }
+      super.init()
+      if (delegate == true) {
+         self.triggerDelegate()
       }
    }
 
-   convenience init(_ error: Error) {
-      if let skError = error as? SKError {
-         self.init(IHError(skError))
-      } else {
-         self.init(IHErrors.unknown, message: "error: " + error.localizedDescription)
+   convenience init(_ error: Error?) {
+      if let error = error {
+         if let skError = error as? SKError {
+            self.init(skError)
+            return
+         }
+         else {
+            self.init(IHErrors.unexpected, message: error.localizedDescription)
+         }
       }
+      else {
+         self.init(IHErrors.unexpected)
+      }
+   }
+   
+   func triggerDelegate() {
+      Iaphub.delegate?.didReceiveError?(err: self)
    }
 }
 
 public enum IHErrors : String {
 
-   case unknown = "An unexpected error has happened"
+   case unexpected = "An unexpected error has happened"
    case network_error = "The remote server couldn't be reached properly"
    case billing_unavailable = "The billing is unavailable (An iPhone can be restricted from accessing the Apple App Store)"
+   case anonymous_purchase_not_allowed = "Anonymous purchase are not allowed, identify user using the login method or enable the anonymous purchase option"
    case user_cancelled = "The purchase has been cancelled by the user"
    case deferred_payment = "The payment has been deferred (awaiting approval from parental control)"
-   case product_already_owned = "Couldn't buy product because it has been bought in the past but hasn't been consumed (restore needed)"
    case product_not_available = "The requested product isn't available for purchase"
    case receipt_failed = "Receipt validation failed, receipt processing will be automatically retried if possible"
    case receipt_invalid = "Receipt is invalid"
    case receipt_stale = "Receipt is stale, no purchases still valid were found"
    case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
-   case product_already_purchased = "Product already purchased, if not returned in the active products it may be owned by a different user (restore needed)"
+   case product_already_purchased = "Product already purchased, it is already an active product of the user"
+   case product_owned_different_user = "Product already purchased and owned by a different user, restore needed to transfer it to this user"
    case transaction_not_found = "Transaction not found, the product sku wasn't in the receipt, the purchase failed"
+   case code_redemption_unavailable = "Presenting the code redemption is not available (only available on iOS 14+)"
+   case user_tags_processing = "The user is currently posting tags, please wait concurrent requests not allowed"
+   case restore_processing = "A restore is currently processing"
 
    var code: String {
       get { return String(describing: self) }

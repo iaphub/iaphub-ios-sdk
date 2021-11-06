@@ -7,26 +7,38 @@
 //
 
 import Foundation
+import UIKit
+
+@objc public protocol IaphubDelegate: AnyObject {
+    
+   @objc optional func didReceiveBuyRequest(sku: String)
+   @objc optional func didReceiveUserUpdate()
+   @objc optional func didProcessReceipt(err: IHError?, receipt: IHReceipt?)
+   @objc optional func didReceiveError(err: IHError)
+}
 
 @objc public class Iaphub : NSObject {
    
    static let shared = Iaphub()
 
-   var iap: IHIAP
-   var user: IHUser
+   var storekit: IHStoreKit
+   var user: IHUser? = nil
 
    var appId: String = ""
    var apiKey: String = ""
    var environment: String = "production"
+   var allowAnonymousPurchase: Bool = false
 
-   var sdk: String = "ios"
-   var sdkVersion: String = "1.0.0"
+   var sdk: String = IHConfig.sdk
+   var sdkVersion: String = IHConfig.sdkVersion
    var isStarted = false
+   var isRestoring = false
    var deviceParams: Dictionary<String, String> = [:]
+   
+   @objc public static weak var delegate: IaphubDelegate?
 
    override private init() {
-      self.iap = IHIAP()
-      self.user = IHUser(Iaphub.getUserId() ?? Iaphub.getAnonymousUserId())
+      self.storekit = IHStoreKit()
       super.init()
    }
 
@@ -35,83 +47,45 @@ import Foundation
     
     - parameter appId: The app id is available on the settings page of your app
     - parameter apiKey: The (client) api key is available on the settings page of your app
+    - parameter userId: The id of the user
+    - parameter allowAnonymousPurchase: If purchase without being logged in are allowed
     - parameter environment: App environment ("production" by default)
-    - parameter onReceiptProcessed: Event triggered after IAPHUB processed a receipt
     - parameter sdk:Parent sdk using the IAPHUB IOS SDK ('react_native', 'flutter', 'cordova')
     - parameter sdkVersion:Parent sdk version
     */
-   @objc public class func start(appId: String, apiKey: String, onReceiptProcessed: ((IHError?, IHReceipt?) -> Void)? = nil, environment: String = "production", sdk: String = "", sdkVersion: String = "") {
+   @objc public class func start(
+      appId: String,
+      apiKey: String,
+      userId: String? = nil,
+      allowAnonymousPurchase: Bool = false,
+      environment: String = "production",
+      sdk: String = "",
+      sdkVersion: String = "")
+   {
+      let oldAppId = shared.appId
       // Setup configuration
       shared.appId = appId
       shared.apiKey = apiKey
+      shared.allowAnonymousPurchase = allowAnonymousPurchase
       shared.environment = environment
       if (sdk != "") {
-         shared.sdk += "/" + sdk;
+         shared.sdk = IHConfig.sdk + "/" + sdk;
       }
       if (sdkVersion != "") {
-         shared.sdkVersion += "/" + sdkVersion;
+         shared.sdkVersion = IHConfig.sdkVersion + "/" + sdkVersion;
       }
-      // Configure user
-      shared.user.configure(sdk: shared)
-      // Start IAP
-      shared.iap.start({ (receipt, finish) in
-         // When receiving a receipt, post it
-         shared.user.postReceipt(receipt, { (err, receiptResponse) in
-            var error = err
-            var shouldFinishReceipt = false
-            var transaction: IHReceiptTransaction? = nil
-
-            // Check receipt response
-            if error == nil, let receiptResponse = receiptResponse {
-               // Finish receipt
-               shouldFinishReceipt = true
-               // Check if the receipt is invalid
-               if (receiptResponse.status == "invalid") {
-                  error = IHError(IHErrors.receipt_invalid)
-               }
-               // Check if the receipt is failed
-               else if (receiptResponse.status == "failed") {
-                  error = IHError(IHErrors.receipt_failed)
-               }
-               // Check if the receipt is stale
-               else if (receiptResponse.status == "stale") {
-                  error = IHError(IHErrors.receipt_stale)
-               }
-               // Check any other status different than success
-               else if (receiptResponse.status != "success") {
-                  error = IHError(IHErrors.unknown, message: "Receipt validation failed")
-                  shouldFinishReceipt = false
-               }
-               // Get transaction if we're in a purchase context
-               if (error == nil && receipt.context == "purchase") {
-                  // Get the new transaction from the response
-                  transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
-                  // If transaction not found, look if it is a product change
-                  if (transaction == nil) {
-                     transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
-                  }
-                  // Otherwise we have an error
-                  if (transaction == nil) {
-                     // Check if it is because of a subscription already active
-                     let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku && $0.expirationDate != nil && $0.expirationDate! > Date()})
-                     if (oldTransaction != nil) {
-                        error = IHError(IHErrors.product_already_purchased)
-                     }
-                     // Otherwise it means the product sku wasn't in the receipt
-                     else {
-                        error = IHError(IHErrors.transaction_not_found)
-                     }
-                  }
-               }
-            }
-            // Finish receipt
-            finish(error, shouldFinishReceipt, transaction)
-            // Call onReceiptProcessed if defined
-            if let onReceiptProcessed = onReceiptProcessed {
-               onReceiptProcessed(error, receipt)
-            }
-         })
-      })
+      // Initialize user
+      if (shared.user == nil || (oldAppId != appId) || (userId != nil && shared.user?.id != userId)) {
+         shared.user = IHUser(id: userId, sdk: shared)
+      }
+      // If it isn't been started yet
+      if (shared.isStarted == false) {
+         // Start storekit
+         shared.startStoreKit()
+         // Register observers to detect app going to background/foreground
+         NotificationCenter.default.addObserver(shared, selector: #selector(shared.onAppBackground), name: UIApplication.willResignActiveNotification, object: nil)
+         NotificationCenter.default.addObserver(shared, selector: #selector(shared.onAppForeground), name: UIApplication.didBecomeActiveNotification, object: nil)
+      }
       // Mark as started
       shared.isStarted = true
    }
@@ -120,60 +94,62 @@ import Foundation
     Stop IAPHUB
     */
    @objc public class func stop() {
-      shared.iap.stop();
+      // Only if not already stopped
+      if (shared.isStarted == true) {
+         // Stop storekit
+         shared.storekit.stop();
+         // Remove observers
+         NotificationCenter.default.removeObserver(shared, name: UIApplication.willResignActiveNotification, object: nil)
+         NotificationCenter.default.removeObserver(shared, name: UIApplication.didBecomeActiveNotification, object: nil)
+         // Mark as unstarted
+         shared.isStarted = false
+      }
    }
 
    /**
-    Set user id
+    Log in
     */
-   @objc public class func setUserId(_ userId: String) {
-      // Check that the id isn't the same
-      if (shared.user.id == userId) {
+   @objc public class func login(userId: String, _ completion: @escaping (IHError?) -> Void) {
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
+      }
+      // Log in user
+      user.login(userId, completion);
+   }
+
+   /**
+    Log out
+    */
+   @objc public class func logout() {
+      guard let user = shared.user else {
          return
       }
-      // Do not update user id if it is an empty string
-      if (userId == "") {
-         return
-      }
-      // Otherwise update the id
-      shared.user = IHUser(userId)
-      shared.saveUserId(userId)
+      // Log out user
+      user.logout()
    }
    
    /**
     Set device params
     */
-   @objc public class func setDeviceParams(_ params: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
-      // Check the sdk is started
-      guard shared.isStarted == true else {
-         return completion(IHError(IHErrors.unknown, message: "sdk not started"))
-      }
-      var hasChange = false;
-      var deviceParams: Dictionary<String, String> = [:]
-      // Set device params
-      for (key, value) in params {
-         if (value != shared.deviceParams["params.\(key)"]) {
-            hasChange = true;
+   @objc public class func setDeviceParams(params: Dictionary<String, String>) {
+      if (NSDictionary(dictionary: shared.deviceParams).isEqual(to: params) == false) {
+         shared.deviceParams = params
+         if let user = shared.user {
+            user.resetCache()
          }
-         deviceParams["params.\(key)"] = value
-      }
-      shared.deviceParams = deviceParams
-      // Reset the user cache if there is any change
-      if (hasChange) {
-         shared.user.resetCache()
       }
    }
    
    /**
     Set user tags
     */
-   @objc public class func setUserTags(_ tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
+   @objc public class func setUserTags(tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
-      guard shared.isStarted == true else {
-         return completion(IHError(IHErrors.unknown, message: "sdk not started"))
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
       }
       // Set tags
-      shared.user.setTags(tags, completion)
+      user.setTags(tags, completion)
    }
    
    /**
@@ -181,48 +157,32 @@ import Foundation
     */
    @objc public class func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
       // Check the sdk is started
-      guard shared.isStarted == true else {
-         return completion(IHError(IHErrors.unknown, message: "sdk not started"), nil)
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil)
+      }
+      // Check if anonymous purchases are allowed
+      if (user.isAnonymous() && shared.allowAnonymousPurchase == false) {
+         return completion(IHError(IHErrors.anonymous_purchase_not_allowed), nil)
       }
       // Refresh user
-      shared.user.refresh({ (err, fetched) in
+      shared.refreshUser({ (err, isFetched, isUpdated) in
          // Check if there is an error
          guard err == nil else {
             return completion(err, nil)
          }
          // Check cross platform conflicts
-         let conflictedSubscription = shared.user.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
+         let conflictedSubscription = user.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
          if (crossPlatformConflict && conflictedSubscription != nil) {
             return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
          }
          // Launch purchase
-         shared.iap.buy(sku, { (err, response) in
+         shared.storekit.buy(sku, { (err, response) in
             // Check error
             guard err == nil else {
                return completion(err, nil)
             }
-            // Check response
-            guard let response = response else {
-               return completion(IHError(IHErrors.unknown, message: "no response"), nil)
-            }
-            // Cast response to receipt transaction
-            let receiptTransaction = response as? IHReceiptTransaction
-            // Check the cast is a success
-            guard receiptTransaction != nil else {
-               return completion(IHError(IHErrors.unknown, message: "no receipt found"), nil)
-            }
-            // Look for the product of the receipt transaction
-            var product = shared.user.productsForSale.first(where: {$0.sku == receiptTransaction?.sku})
-            // If not found look in the active products
-            if (product == nil) {
-               product = shared.user.activeProducts.first(where: {$0.sku == receiptTransaction?.sku})
-            }
-            // Assign the skProduct of the transaction
-            if (product?.skProduct != nil) {
-               receiptTransaction?.setSKProduct(product!.skProduct!)
-            }
-            // Call completion
-            completion(nil, receiptTransaction)
+            // Return receipt transaction
+            shared.getReceiptTransaction(response, completion)
          })
       })
    }
@@ -233,110 +193,338 @@ import Foundation
    @objc public class func restore(_ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
       guard shared.isStarted == true else {
-         return completion(IHError(IHErrors.unknown, message: "sdk not started"))
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
       }
       // Launch restore
-      shared.iap.restore(completion)
+      shared.storekit.restore(completion)
    }
 
    /**
     Get active products
     */
-   @objc public class func getActiveProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
+   @objc public class func getActiveProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHActiveProduct]?) -> Void) {
       // Check the sdk is started
-      guard shared.isStarted == true else {
-         return completion(IHError(IHErrors.unknown, message: "sdk not started"), nil)
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil)
       }
       // Refresh user
-      shared.user.refresh({ (err, fetched) in
+      shared.refreshUser({ (err, isFetched, isUpdated) in
          // Check if there is an error
          guard err == nil else {
             return completion(err, nil)
          }
-         // If the user has not been fetched, look if there is active subscriptions
-         if (fetched == false) {
-            let subscriptions = shared.user.activeProducts.filter { (product) in
-               return product.type == "renewable_subscription"
-            }
-            // If we have active renewable subscriptions, refresh every minute
-            if (subscriptions.count > 0) {
-               shared.user.refresh(interval: 60, { (err, fetched) in
-                  completion(err, shared.user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
-               })
-            }
-            // Otherwise return the products
-            else {
-               completion(nil, shared.user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
-            }
-         }
-         // Otherwise return the products
-         else {
-            completion(nil, shared.user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
-         }
+         // Return active products
+         completion(err, user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
       })
    }
-   
+
    /**
     Get products for sale
     */
    @objc public class func getProductsForSale(_ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
       // Check the sdk is started
-      guard shared.isStarted == true else {
-         return completion(IHError(IHErrors.unknown, message: "sdk not started"), nil)
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil)
       }
-      // Refresh user
-      shared.user.refresh({ (err, fetched) in
+      // Refresh user with an interval of 24 hours
+      shared.refreshUser(interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
          // Check if there is an error
          guard err == nil else {
             return completion(err, nil)
          }
          // Otherwise return the products
-         completion(nil, shared.user.productsForSale)
+         completion(nil, user.productsForSale)
       })
+   }
+   
+   /**
+    Present code redemption
+    */
+   @objc public class func presentCodeRedemptionSheet(_ completion: @escaping (IHError?) -> Void) {
+      // Check the sdk is started
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
+      }
+      // Check if anonymous purchases are allowed
+      if (user.isAnonymous() && shared.allowAnonymousPurchase == false) {
+         return completion(IHError(IHErrors.anonymous_purchase_not_allowed))
+      }
+      // Present code redemption
+      shared.storekit.presentCodeRedemptionSheet(completion)
    }
    
    /***************************** PRIVATE ******************************/
    
    /**
-    Save user id
+   Triggerred when the app is going to the background
     */
-   private func saveUserId(_ userId: String) {
-      let defaults = UserDefaults.standard
-      let key = "iaphub_user_id"
-      
-      defaults.set(userId, forKey: key)
+   @objc private func onAppBackground() {
+      // Pause storekit
+      self.storekit.pause();
    }
    
    /**
-    Get user id
+   Triggerred when the app is going to the foreground
     */
-   static func getUserId() -> String? {
-      let defaults = UserDefaults.standard
-      let key = "iaphub_user_id"
-      let userId = defaults.string(forKey: key)
-
-      return userId
-   }
-   
-   /**
-    Get anonymous user id
-    */
-   static func getAnonymousUserId() -> String {
-      let defaults = UserDefaults.standard
-      let key = "iaphub_anonymous_user_id"
-      
-      // Check if the user id is in cache
-      if let userId = defaults.string(forKey: key)
-      {
-         return userId
+   @objc private func onAppForeground() {
+      // Resume storekit
+      self.storekit.resume();
+      // Refresh user (only if it has already been fetched)
+      if (self.user?.fetchDate != nil) {
+         self.refreshUser()
       }
-      // Otherwise generate user id
-      let anonymousPrefix = "a_"
-      let userId = anonymousPrefix + UUID().uuidString.lowercased()
-      // And save user id in cache
-      defaults.set(userId, forKey: key)
-      
-      return userId
    }
-    
+
+   /**
+    Refresh user
+    */
+   private func refreshUser(interval: Double = 0, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
+      // Check the sdk is started
+      guard let user = self.user else {
+         return
+      }
+      // Refresh callback function
+      func callback(err: IHError?, isFetched: Bool, isUpdated: Bool) {
+         // Trigger didReceiveUserUpdate event if the user has been updated
+         if (isUpdated) {
+            Self.delegate?.didReceiveUserUpdate?()
+         }
+         // Call completion if defined
+         completion?(err, isFetched, isUpdated)
+      }
+      // Fetch directly, cache disabled
+      if (force == true) {
+         user.refresh(interval: 0, force: true, callback)
+      }
+      // Refresh user with interval
+      else if (interval > 0) {
+         user.refresh(interval: interval, callback)
+      }
+      // Otherwise refresh with no interval
+      else {
+         user.refresh(callback)
+      }
+   }
+
+   /**
+    Get receipt transaction
+    */
+   private func getReceiptTransaction(_ response: Any?, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
+      // Check response
+      guard let response = response else {
+         return completion(IHError(IHErrors.unexpected, message: "no response"), nil)
+      }
+      // Check the cast is a success
+      guard let receiptTransaction = response as? IHReceiptTransaction else {
+         return completion(IHError(IHErrors.unexpected, message: "receipt transaction found"), nil)
+      }
+      // Look for the product of the receipt transaction
+      self.storekit.getProduct(receiptTransaction.sku, {(err, skProduct) in
+         // Assign the skProduct of the transaction
+         if (skProduct != nil) {
+            receiptTransaction.setSKProduct(skProduct!)
+         }
+         // Call completion
+         completion(nil, receiptTransaction)
+      })
+   }
+   
+   /**
+    Start storekit
+    */
+   private func startStoreKit() {
+      // Start storekit
+      self.storekit.start(
+         // Event triggered when a new receipt is available
+         onReceipt: { (receipt, finish) in
+            // Check the sdk is started
+            guard let user = self.user else {
+               return
+            }
+            // When receiving a receipt, post it
+            user.postReceipt(receipt, { (err, receiptResponse) in
+               var error = err
+               var shouldFinishReceipt = false
+               var transaction: IHReceiptTransaction? = nil
+
+               // Check receipt response
+               if error == nil, let receiptResponse = receiptResponse {
+                  // Finish receipt
+                  shouldFinishReceipt = true
+                  // Check if the receipt is invalid
+                  if (receiptResponse.status == "invalid") {
+                     error = IHError(IHErrors.receipt_invalid)
+                  }
+                  // Check if the receipt is failed
+                  else if (receiptResponse.status == "failed") {
+                     error = IHError(IHErrors.receipt_failed)
+                  }
+                  // Check if the receipt is stale
+                  else if (receiptResponse.status == "stale") {
+                     error = IHError(IHErrors.receipt_stale)
+                  }
+                  // Check any other status different than success
+                  else if (receiptResponse.status != "success") {
+                     error = IHError(IHErrors.unexpected, message: "Receipt validation failed")
+                     shouldFinishReceipt = false
+                  }
+                  // Get transaction if we're in a purchase context
+                  if (error == nil && receipt.context == "purchase") {
+                     // Get the new transaction from the response
+                     transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
+                     // If transaction not found, look if it is a product change
+                     if (transaction == nil) {
+                        transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
+                     }
+                     // Otherwise we have an error
+                     if (transaction == nil) {
+                        // Check if it is because of a subscription already active
+                        let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku})
+                        if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
+                           error = IHError(IHErrors.product_already_purchased, delegate: false)
+                        }
+                        // Otherwise it means the product sku wasn't in the receipt
+                        else {
+                           error = IHError(IHErrors.transaction_not_found)
+                        }
+                     }
+                  }
+               }
+               // Refresh user
+               self.refreshUser(force: true, {(fetchErr, isFetched, isUpdated) in
+                  // If the product has already been purchased, check if a restore is needed
+                  if (error?.code == "product_already_purchased") {
+                     let product = user.activeProducts.first(where: { $0.sku == receipt.sku})
+                     
+                     if (product == nil) {
+                        error = IHError(IHErrors.product_owned_different_user)
+                     }
+                     else {
+                        error = IHError(IHErrors.product_already_purchased)
+                     }
+                  }
+                  // Finish receipt
+                  finish(error, shouldFinishReceipt, transaction)
+                  // Trigger didProcessReceipt event
+                  Self.delegate?.didProcessReceipt?(err: error, receipt: receipt)
+               })
+            })
+         },
+         // Event triggered when the purchase of a product is requested
+         onBuyRequest: { (sku) in
+            // Call didReceiveBuyRequest event if defined
+            if (Self.delegate?.didReceiveBuyRequest != nil) {
+               Self.delegate?.didReceiveBuyRequest?(sku: sku)
+            }
+            // Otherwise call buy method directly
+            else {
+               Self.buy(sku: sku, { (err, transaction) in
+                  // Nothing to do here
+               })
+            }
+         }
+      )
+   }
+
+}
+
+@available(iOS 15.0.0, *)
+extension Iaphub {
+   
+   /**
+    Async/await login
+    */
+   public class func login(userId: String) async throws {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.login(userId: userId, { (err) in
+            if (err != nil) {
+               continuation.resume(throwing: err! as Error)
+            }
+            else {
+               continuation.resume()
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await set user tags
+    */
+   public class func setUserTags(tags: Dictionary<String, String>) async throws {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.setUserTags(tags: tags, { (err) in
+            if (err != nil) {
+               continuation.resume(throwing: err! as Error)
+            }
+            else {
+               continuation.resume()
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await get products for sale
+    */
+   public class func getProductsForSale() async throws -> [IHProduct] {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.getProductsForSale({ (err, products) in
+            if let products = products {
+               continuation.resume(returning: products)
+            }
+            else {
+               continuation.resume(throwing: err! as Error)
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await get active products
+    */
+   public class func getActiveProducts(includeSubscriptionStates: [String] = []) async throws -> [IHActiveProduct] {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates, { (err, products) in
+            if let products = products {
+               continuation.resume(returning: products)
+            }
+            else {
+               continuation.resume(throwing: err! as Error)
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await get products for sale
+    */
+   public class func buy(sku: String, crossPlatformConflict: Bool = true) async throws -> IHReceiptTransaction {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.buy(sku: sku, crossPlatformConflict: crossPlatformConflict, { (err, transaction) in
+            if let transaction = transaction {
+               continuation.resume(returning: transaction)
+            }
+            else {
+               continuation.resume(throwing: err! as Error)
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await restore
+    */
+   public class func restore() async throws {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.restore({ (err) in
+            if (err != nil) {
+               continuation.resume(throwing: err! as Error)
+            }
+            else {
+               continuation.resume()
+            }
+         })
+      }
+   }
+   
 }

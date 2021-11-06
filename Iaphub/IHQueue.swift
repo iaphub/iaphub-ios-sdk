@@ -47,14 +47,16 @@ class IHQueue {
       self.run(completion)
    }
    
-   public func run(_ completion: (() -> Void)? = nil) {
-      // Add completion to the queue
-      if let completion = completion {
-         self.completionQueue.append(completion)
-      }
-      // Stop here if the queue is paused or already running
-      if (self.isPaused || self.isRunning) {
-         return
+   private func run(isInitialRun: Bool = true, _ completion: (() -> Void)? = nil) {
+      if (isInitialRun == true) {
+         // Add completion to the queue
+         if let completion = completion {
+            self.completionQueue.append(completion)
+         }
+         // Stop here if the queue is paused
+         if (self.isRunning) {
+            return
+         }
       }
       // Get the items we're going to process, empty waiting list and mark the queue as running
       let items = self.waiting
@@ -67,8 +69,8 @@ class IHQueue {
          })
       }){ (error: Any?) -> Void in
          // Run again if there's more items in the waiting list
-         if (self.waiting.count != 0) {
-            self.run()
+         if (self.waiting.count != 0 && self.isPaused == false) {
+            self.run(isInitialRun: false)
          }
          // Otherwise we're done
          else {

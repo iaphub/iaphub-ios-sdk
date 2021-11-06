@@ -19,10 +19,7 @@ class IAP: ObservableObject {
    static let shared = IAP()
 
    init() {
-      // Trigger refresh of products when app goes to foreground
-      NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] (_) in
-         self?.refreshProducts()
-      }
+      self.refreshProducts()
    }
    
    func refreshProducts() {
@@ -32,22 +29,22 @@ class IAP: ObservableObject {
 
    func getProductsForSale() {
       Iaphub.getProductsForSale({ (err, products) in
-         if let err = err {
-            print("--> getProductsForSale error: ", err.message)
+         if let products = products {
+            self.productsForSale = products
          }
          else {
-            self.productsForSale = products!
+            print("-> productsForSale error: \(err?.localizedDescription)")
          }
       })
    }
    
    func getActiveProducts() {
       Iaphub.getActiveProducts({ (err, products) in
-         if let err = err {
-            print("-> getActiveProducts error: ", err.message)
+         if let products = products {
+            self.activeProducts = products
          }
          else {
-            self.activeProducts = products!
+            print("-> activeProducts error: \(err?.localizedDescription)")
          }
       })
    }
@@ -68,22 +65,20 @@ class IAP: ObservableObject {
       }
       self.skuProcessing = sku
       Iaphub.buy(sku: sku, { (err, transaction) in
-         print("--> buy error: ", err?.message)
-         print("--> buy transaction: ", transaction)
          self.skuProcessing = ""
          // Check error
          if let err = err {
-            // Purchase popup cancelled by the user
-            if (err.code == "user_cancelled") {
+            // Do not do anything if purchase cancelled or product already purchased
+            if (err.code == "user_cancelled" || err.code == "product_already_purchased") {
                return
             }
             // The billing is unavailable (An iPhone can be restricted from accessing the Apple App Store)
             else if (err.code == "billing_unavailable") {
                return self.openAlert("In-app purchase not allowed")
             }
-            // Couldn't buy product because it has been bought in the past but hasn't been consumed (restore needed)
-            else if (err.code == "product_already_owned") {
-               return self.openAlert("Product already owned, please restore your purchases in order to fix that issue")
+            // The product has already been bought but it's owned by a different user, restore needed to transfer it to this user
+            else if (err.code == "product_owned_different_user") {
+               return self.openAlert("You already purchased this product but it is currently used by a different account, restore your purchases to transfer it to this account")
             }
             // The payment has been deferred (awaiting approval from parental control)
             else if (err.code == "deferred_payment") {
@@ -104,7 +99,7 @@ class IAP: ObservableObject {
              * After fixing the issue (if there's any), just click on the 'New report' button in order to process the receipt again
              * If it is an error contacting the Itunes/GooglePlay API, IAPHUB will retry to process the receipt automatically as well
              */
-            else if (err.code == "receipt_validation_failed") {
+            else if (err.code == "receipt_failed") {
                return self.openAlert("We're having trouble validating your transaction, give us some time we'll retry to validate your transaction ASAP!")
             }
             /*
@@ -129,8 +124,6 @@ class IAP: ObservableObject {
          else {
             self.openAlert("Your purchase has been processed successfully!")
          }
-         // Refresh products
-         self.refreshProducts()
       })
    }
    

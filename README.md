@@ -19,18 +19,13 @@ You should spend this precious time building your app!
 🌎 | Product Segmentation - Offer different product or pricings to your customers depending on defined criterias such as the country.
 👤 | Customer Management - Access easily the details of a customer, everything you need to know such as the past transactions and the active subscriptions on one page.
 
-## How can I be notified of updates?
-
-Watch for new releases by clicking on the watch button in the topbar right next to the star button (select "Releases only")<br/>
-Also if you can star the repo it means the world to us 🙏
-
 ## Installation
 
 Implementing In-app purchases in your app should be a piece of cake!<br/>
 
 1. Create an account on [IAPHUB](https://www.iaphub.com)
 
-2. Add Iaphub to your Podfile `pod 'Iaphub', '~> 1.0.0'`
+2. Add Iaphub to your Podfile `pod 'Iaphub', '~> 2.0.0'`
 
 3. Run `pod install`
 
@@ -44,39 +39,136 @@ import Iaphub
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+      Iaphub.delegate = self
       Iaphub.start(
         // The app id is available on the settings page of your app
         appId: "5e4890f6c61fc971cf46db4d",
+        
         // The (client) api key is available on the settings page of your app
         apiKey: "SDp7aY220RtzZrsvRpp4BGFm6qZqNkNf",
-        // App environment (production by default, other environments must be created on the IAPHUB dashboard)
-        environment: "production"
+        
+        // The user id, if you do not specify one an anonymous id will be generated (id prefixed with 'a:')
+        // You can provide it if the user is already logged in on app start
+        userId: "42",
+
+        // If you want to allow purchases when the user has an anonymous user id
+        // If you're listenning to IAPHUB webhooks your implementation must support users with anonymous user ids
+        // This option is disabled by default, when disabled the buy method will return an error when the user isn't logged in
+        allowAnonymousPurchase: true
       )
       return true
-  } 
+  }
 }
 ```
 
-## Set user id
-Call the `setUserId` method to authenticate an user.<br/>
-If no user id is provided IAPHUB will generate an anonymous user id by default (prefixed with 'a_')
+## Delegate
+IAPHUB is exposing different events, you can listen to them by using the `IaphubDelegate`.<br/>
+They are all optional but `didReceiveUserUpdate` is highly recommended in order to know when to refresh the state of your products.
 
-⚠ You should provide an id that is non-guessable and isn't public. (Email not allowed)
 ```swift
-  Iaphub.setUserId("1e5494930c48ed07aa275fd2");
+extension AppDelegate: IaphubDelegate {
+    
+  func didReceiveUserUpdate() {
+    // Called when the user has already been fetch and is updated
+    // It means the products for sale or active products are different from the one you previously loaded using getProductsForSale/getActiveProducts
+    // You should refresh your view with the new state of your products
+
+    // When using the login/logout method, the user is reset, meaning this event won't be called until the user has been loaded first using the getProductsForSale/getActiveProducts methods
+  }
+
+  func didReceiveError(err: IHError) {
+    // Called when IAPHUB has detected an error
+    // It can be interesting to log unexpected errors
+    if (err.code == "unexpected") {
+      print("Unexpected error: \(err.localizedDescription)")
+    }
+  }
+
+  func didReceiveBuyRequest(sku: String) {
+    // Called when a purchase intent is made from outside the app (from a promoted In-App purchase for example), IAPHUB is allowing all of them by default
+    // If you want to allow/disallow a purchase intent (to wait until the user is logged in for example) you can implement this method
+    // You'll have to call the buy method whenever you're ready
+    // Also note you'll have a callback to know when the transaction is done (you woudn't otherwise)
+    Iaphub.buy(sku: sku, { (err, transaction) in
+        
+    })
+  }
+
+  func didProcessReceipt(_ err: IHError?, _ receipt: IHReceipt?) {
+    // Called after a receipt has been processed
+  }
+
+}
+```
+
+## Login
+Call the `login` method to authenticate an user.<br/>
+
+⚠ You should provide an id that is non-guessable and isn't public. (Email not allowed)<br/>
+
+⚠ The user will be reset, `didReceiveUserUpdate` will only be called until after the user has been loaded first (using getProductsForSale/getActiveProducts).<br/>
+
+```swift
+Iaphub.login(userId: "3e4890f6c72fc971cf46db5d", { (err: IHError?) in
+  // On a success the err should be nil
+});
+```
+
+## Logout
+Call the `logout` method to log the user out.<br/>
+The user will switch back to his anonymous user id (prefixed with 'a:').<br/>
+
+⚠ The user will be reset, `didReceiveUserUpdate` will only be called until after the user has been loaded first (using getProductsForSale/getActiveProducts).<br/>
+
+```swift
+Iaphub.logout({ (err: IHError?) in
+  // On a success the err should be nil
+});
 ```
 
 ## Set user tags
 Call the `setUserTags` method to update the user tags.<br/>
-Tags are a powerful tool that allows you to offer to your users different products depending on custom properties.<br/>
+User tags will appear on the user page of the IAPHUB dashboard.<br/>
+When using IAPHUB's [smart listings](https://www.iaphub.com/docs/resources/smart-listing), you'll be able to return different products depending on the user tags.<br/>
 
 ⚠ This method will throw an error if the tag name hasn't been created on the IAPHUB dashboard
 
 ```swift
-  Iaphub.setUserTags({gender: 'male'}, { (err: IHError?) in
-    // On a success the err should be nil
-  });
+// To set a tag
+Iaphub.setUserTags(tags: ["gender": "male"], { (err: IHError?) in
+  // On a success err should be nil
+});
+
+// To remove a tag pass a empty string
+Iaphub.setUserTags(tags: ["gender": ""], { (err: IHError?) in
+  // On a success err should be nil
+});
 ```
+
+A few details:
+  - A tag must be created on the IAPHUB dashboard (otherwise the method will throw an error)
+  - When creating a tag on the IAPHUB dashboard you must check the option to allow editing the tag from the client (otherwise you'll only be able to edit the tag using the [IAPHUB API](https://www.iaphub.com/docs/api/post-user) from your server)
+  - A tag key is limited to 32 characters
+  - A tag value is limited to 64 characters
+
+## Set device params
+Call the `setDeviceParams` method to set parameters for the device<br/>
+When using IAPHUB's [smart listings](https://www.iaphub.com/docs/resources/smart-listing), you'll be able to return different products depending on the device params.
+
+```swift
+// For instance you can provide the app version on app launch
+// Useful to return a product only supported in a new version
+Iaphub.setDeviceParams(params: ["appVersion": "2.0.0"])
+// To clear the device params
+Iaphub.setDeviceParams(params: [:])
+```
+
+A few details:
+  - The params are not saved on the device, they won't persist if the app is restarted
+  - The params are not saved on IAPHUB, they are just provided to the API when fetching the products for sale
+  - A param key limited to 32 characters and must be a valid key (``^[a-zA-Z_]*$``)
+  - A param value limited to 32 characters
+  - You can provide up to 5 params
 
 ## Get products for sale
 Call the ``getProductsForSale`` method to get the user's products for sale<br/>
@@ -84,75 +176,37 @@ You should use this method when displaying the page with the list of your produc
 
 ⚠ If the request fails because of a network issue, the method returns the latest request in cache (if available, otherwise an error is thrown).
 
+⚠ If a product is returned by the [API](https://www.iaphub.com/docs/api/get-user/) but the sku cannot be loaded, it'll be filtered from the list and an 'unexpected' error will be returned in the `didReceiveError` method.
+
 ```swift
 Iaphub.getProductsForSale({ (err: IHError?, products: [IHProduct]?) in
-  print(products);
-  [
-    {
-      id: "5e5198930c48ed07aa275fd9",
-      type: "renewable_subscription",
-      sku: "membership2_tier10",
-      group: "3e5198930c48ed07aa275fd8",
-      groupName: "subscription_group_1",
-      localizedTitle: "Membership",
-      localizedDescription: "Become a member of the community",
-      localizedPrice: "$9.99",
-      price: 9.99,
-      currency: "USD",
-      subscriptionPeriodType: "normal",
-      subscriptionDuration: "P1M"
-    },
-    {
-      id: "5e5198930c48ed07aa275fd9",
-      type: "consumable",
-      sku: "pack10_tier15",
-      localizedTitle: "Pack 10",
-      localizedDescription: "Pack of 10 coins",
-      localizedPrice: "$14.99",
-      price: 14.99,
-      currency: "USD"
-    }
-  ]
+  // On a success err should be nil
 })
 ```
 
 ## Get active products
-If you're relying on IAPHUB on the client side (instead of using your server with webhooks) to detect if the user has active products (renewable subscriptions or non-consumables), you should use the `getActiveProducts` method when the app is brought to the foreground.<br/>
+If you're relying on IAPHUB on the client side (instead of using your server with webhooks) to detect if the user has active products (auto-renewable subscriptions, non-renewing subscriptions or non-consumables), you should use the `getActiveProducts` method.<br/>
 
-⚠ If the request fails because of a network issue, the method returns the latest request in cache (if available, otherwise an error is thrown).
+⚠ If the request fails because of a network issue, the method returns the latest request in cache (if available with no expired subscription, otherwise an error is thrown).
 
+⚠ If an active product is returned by the API but the sku cannot be loaded, the product will be returned but only with the properties coming from the [API](https://www.iaphub.com/docs/api/get-user/) (The price, title, description.... properties won't be returned).
+
+#### Subscription state
+
+Value | Description |
+| :------------ |:---------------
+| active | The subscription is active
+| grace_period | The subscription is in the grace period, the user should still access the features offered by your subscription
+| retry_period | The subscription is in the retry period, you must restrict the access to the features offered by your subscription and display a message asking for the user to update its payment informations.
+| paused | The subscription is paused (Android only) and will automatically resume at a later date (`autoResumeDate` property), you must restrict the access to the features offered by your subscription.
+
+By default only subscriptions with an `active` or `grace_period` state are returned by the `getActiveProducts` method because you must restrict the access to the features offered by your subscription on a `retry_period` or `paused` state.<br/>
+<br/>
+If you're looking to display a message when a user has a subscription on a `retry_period` or `paused` state, you can use the `includeSubscriptionStates` option.
 ```swift
-// Add observer to be notified when the app goes to foreground
-NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] (_) in
-  // Get active products
-  Iaphub.getActiveProducts({ (err: IHError?, products: [IHActiveProduct]?) in
-    print(products);
-    [{
-      id: "5e5198930c48ed07aa275fd9",
-      type: "renewable_subscription",
-      sku: "membership1_tier5",
-      purchase: "5e5198930c48ed07aa275fe8",
-      purchaseDate: "2020-03-11T00:42:28.000Z",
-      expirationDate: "2021-03-11T00:42:28.000Z",
-      isSubscriptionRenewable: true,
-      isSubscriptionRetryPeriod: false,
-      group: "3e5198930c48ed07aa275fd8",
-      groupName: "subscription_group_1",
-      localizedTitle: "Membership",
-      localizedDescription: "Become a member of the community",
-      localizedPrice: "$4.99",
-      price: 4.99,
-      currency: "USD",
-      subscriptionDuration: "P1M",
-      subscriptionPeriodType: "intro",
-      subscriptionIntroPrice: "$1.99",
-      subscriptionIntroPriceAmount: 1.99,
-      subscriptionIntroPayment: "as_you_go",
-      subscriptionIntroDuration: "P1M",
-      subscriptionIntroCycles: 3
-    }]
+  Iaphub.getActiveProducts(includeSubscriptionStates: ["retry_period", "paused"], { (err: IHError?, products: [IHActiveProduct]?) in
+    // On a success err should be nil
   })
-}
 ```
 
 #### Check subscription status
@@ -165,53 +219,63 @@ More informations on the [IAPHUB documentation](https://iaphub.com/docs/getting-
 
 ## Buy a product
 Call the ``buy`` method to buy a product<br/><br/>
-ℹ️ The method needs the product sku that you would get from one of the products of `getProductsForSale()`.<br/>
-ℹ️ The method will process a purchase as a subscription replace if you currently have an active subscription and you buy a subscription of the same group (product group created on IAPHUB).<br/>
+ℹ️ The method needs the product sku that you would get from one of the products of `getProductsForSale`.<br/>
 
 ```swift
-Iaphub.buy(sku, { (err: IHError?, transaction: IHReceiptTransaction?) in
+Iaphub.buy(sku: sku, { (err: IHError?, transaction: IHReceiptTransaction?) in
   // Check error
   if let err = err {
-    // Purchase popup cancelled by the user
-    if (err.code == "user_cancelled") {
-        return
+    // Do not do anything if purchase cancelled or product already purchased
+    if (err.code == "user_cancelled" || err.code == "product_already_purchased") {
+      return
     }
     // The billing is unavailable (An iPhone can be restricted from accessing the Apple App Store)
     else if (err.code == "billing_unavailable") {
         return self.openAlert("In-app purchase not allowed")
     }
-    // Couldn't buy product because it has been bought in the past but hasn't been consumed (restore needed)
-    else if (err.code == "product_already_owned") {
-        return self.openAlert("Product already owned, please restore your purchases in order to fix that issue")
+    // The product has already been bought but it's owned by a different user, restore needed to transfer it to this user
+    else if (err.code == "product_owned_different_user") {
+      return self.openAlert("You already purchased this product but it is currently used by a different account, restore your purchases to transfer it to this account")
     }
     // The payment has been deferred (awaiting approval from parental control)
     else if (err.code == "deferred_payment") {
         return self.openAlert("Your purchase is awaiting approval from the parental control")
     }
     /*
-      * The remote server couldn't be reached properly
-      * The user will have to restore its purchases in order to validate the transaction
-      * An automatic restore should be triggered on every relaunch of your app since the transaction hasn't been 'finished'
-      */
+     * The remote server couldn't be reached properly
+     * The user will have to restore its purchases in order to validate the transaction
+     * An automatic restore should be triggered on every relaunch of your app since the transaction hasn't been 'finished'
+     */
     else if (err.code == "network_error") {
         return self.openAlert("Please try to restore your purchases later (Button in the settings) or contact the support (support@myapp.com)")
     }
     /*
-      * The receipt has been processed on IAPHUB but something went wrong
-      * It is probably because of an issue with the configuration of your app or a call to the Itunes/GooglePlay API that failed
-      * IAPHUB will send you an email notification when a receipt fails, by checking the receipt on the dashboard you'll find a detailed report of the error
-      * After fixing the issue (if there's any), just click on the 'New report' button in order to process the receipt again
-      * If it is an error contacting the Itunes/GooglePlay API, IAPHUB will retry to process the receipt automatically as well
-      */
-    else if (err.code == "receipt_validation_failed") {
+     * The receipt has been processed on IAPHUB but something went wrong
+     * It is probably because of an issue with the configuration of your app or a call to the Itunes/GooglePlay API that failed
+     * IAPHUB will send you an email notification when a receipt fails, by checking the receipt on the dashboard you'll find a detailed report of the error
+     * After fixing the issue (if there's any), just click on the 'New report' button in order to process the receipt again
+     * If it is an error contacting the Itunes/GooglePlay API, IAPHUB will retry to process the receipt automatically as well
+     */
+    else if (err.code == "receipt_failed") {
         return self.openAlert("We're having trouble validating your transaction, give us some time we'll retry to validate your transaction ASAP!")
     }
     /*
-      * The receipt has been processed on IAPHUB but is invalid
-      * It could be a fraud attempt, using apps such as Freedom or Lucky Patcher on an Android rooted device
-      */
+     * The receipt has been processed on IAPHUB but is invalid
+     * It could be a fraud attempt, using apps such as Freedom or Lucky Patcher on an Android rooted device
+     */
     else if (err.code == "receipt_invalid") {
         return self.openAlert("We were not able to process your purchase, if you've been charged please contact the support (support@myapp.com)")
+    }
+    /*
+     * The user has already an active subscription on a different platform (android or ios)
+     * This security has been implemented to prevent a user from ending up with two subscriptions of different platforms
+     * You can disable the security by providing the 'crossPlatformConflict' parameter to the buy method (Iaphub.buy(sku: sku, crossPlatformConflict: false))
+    */
+    else if (err.code == "cross_platform_conflict") {
+      Alert.alert(
+        `Seems like you already have a subscription on a different platform`,
+        `You have to use the same platform to change your subscription or wait for your current subscription to expire`
+      );
     }
     // Any other error
     return self.openAlert("We were not able to process your purchase, please try again later or contact the support (support@myapp.com)")
@@ -247,7 +311,7 @@ Iaphub.restore({ (err: IHError?) in
 })
 ```
 
-## Documentation
+## Properties
 
 ### IHProduct
 | Prop  | Type | Description |
@@ -276,12 +340,21 @@ Iaphub.restore({ (err: IHError?) in
 | :------------ |:---------------:| :-----|
 | purchase | `String?` | Purchase id (From IAPHUB) |
 | purchaseDate | `String?` | Purchase date |
+| platform | `String?` | Platform of the purchase (Possible values: 'ios', 'android') |
 | expirationDate | `Date?` | Subscription expiration date |
 | isSubscriptionRenewable | `Bool = false` | True if the auto-renewal is enabled |
 | isSubscriptionRetryPeriod | `Bool = false` | True if the subscription is currently in a retry period |
 | isSubscriptionGracePeriod | `Bool = false` | True if the subscription is currently in a grace period |
+| subscriptionRenewalProduct | `String?` | Subscription product id of the next renewal (only defined if different than the current product) |
+| subscriptionRenewalProductSku | `String?` | Subscription product sku of the next renewal |
+| subscriptionState | `String?` | State of the subscription<br>(Possible values: 'active', 'grace_period', 'retry_period', 'paused') |
 
-### IHError
+### IHReceiptTransaction (inherit from IHActiveProduct)
+| Prop  | Type | Description |
+| :------------ |:---------------:| :-----|
+| webhookStatus | `String?` | Webhook status (Possible values: 'success', 'failed', 'disabled') |
+
+### IHError (inherit from LocalizedError)
 | Prop  | Type | Description |
 | :------------ |:---------------:| :-----|
 | message | `String` | Error message |

@@ -67,4 +67,145 @@ class IHUtil {
          }
       })
    }
+   
+   /**
+    Get value from keychain
+    */
+   static func setupKeychainQueryDictionary(_ key: String) -> [String:Any] {
+      // Setup default access as generic password (rather than a certificate, internet password, etc)
+     let SecClass = kSecClass as String
+     var keychainQueryDictionary: [String:Any] = [SecClass:kSecClassGenericPassword]
+     
+     // Uniquely identify this keychain accessor
+     keychainQueryDictionary[kSecAttrService as String] = "iaphub"
+     
+     // Uniquely identify the account who will be accessing the keychain
+     let encodedIdentifier: Data? = key.data(using: String.Encoding.utf8)
+     
+     keychainQueryDictionary[kSecAttrGeneric as String] = encodedIdentifier
+     keychainQueryDictionary[kSecAttrAccount as String] = encodedIdentifier
+     keychainQueryDictionary[kSecAttrSynchronizable as String] = kCFBooleanFalse
+     
+     return keychainQueryDictionary
+   }
+   
+   /**
+    Get value from keychain
+    */
+   static func getFromKeychain(_ key: String) -> String? {
+      var keychainQueryDictionary = Self.setupKeychainQueryDictionary(key)
+              
+      // Limit search results to one
+      keychainQueryDictionary[kSecMatchLimit as String] = kSecMatchLimitOne
+
+      // Specify we want Data/CFData returned
+      keychainQueryDictionary[kSecReturnData as String] = kCFBooleanTrue
+
+      // Search
+      var result: AnyObject?
+      let status = SecItemCopyMatching(keychainQueryDictionary as CFDictionary, &result)
+
+      let data = status == noErr ? result as? Data : nil
+      
+      return data != nil ? String(data: data!, encoding: String.Encoding.utf8) as String? : nil
+   }
+   
+   /**
+    Delete key from keychain
+    */
+   static func deleteFromKeychain(key: String) -> Bool {
+      let keychainQueryDictionary: [String:Any] = Self.setupKeychainQueryDictionary(key)
+      let status: OSStatus = SecItemDelete(keychainQueryDictionary as CFDictionary)
+
+     if status == errSecSuccess {
+         return true
+     } else {
+         return false
+     }
+   }
+   
+   /**
+    Save value to keychain
+    */
+   static func saveToKeychain(key: String, value: String?) -> Bool {
+      // Delete if the value is nil
+      guard let value = value else {
+         return Self.deleteFromKeychain(key: key)
+      }
+      
+      let data = value.data(using: .utf8)
+      var keychainQueryDictionary: [String:Any] = Self.setupKeychainQueryDictionary(key)
+
+      keychainQueryDictionary[kSecValueData as String] = data
+      // Assign default protection - Protect the keychain entry so it's only valid when the device is unlocked
+      keychainQueryDictionary[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+
+      let status: OSStatus = SecItemAdd(keychainQueryDictionary as CFDictionary, nil)
+
+      if status == errSecSuccess {
+         return true
+      } else if status == errSecDuplicateItem {
+         let SecValueData = kSecValueData as String
+         let updateDictionary = [SecValueData:data]
+         let status: OSStatus = SecItemUpdate(Self.setupKeychainQueryDictionary(key) as CFDictionary, updateDictionary as CFDictionary)
+         
+         return status == errSecSuccess ? true : false
+      } else {
+         return false
+      }
+   }
+   
+   /**
+    Parse items
+   */
+   static func parseItems<T: IHParsable>(data: Any?, type: T.Type) -> [T] {
+      let itemsDictionary = (data as? [Dictionary<String, Any>]) ?? [Dictionary<String, Any>]()
+      var items = [T]()
+
+      for item in itemsDictionary {
+         do {
+            let item = try type.init(item)
+            items.append(item)
+         } catch {
+            // If the product cannot be parsed, ignore it
+         }
+      }
+      return items
+   }
+   
+   /**
+    Convert ISO string to date
+   */
+   static func dateFromIsoString(_ str: String?) -> Date? {
+      guard let str = str else {
+         return nil
+      }
+      
+      let formatter = DateFormatter()
+
+      formatter.calendar = Calendar(identifier: .iso8601)
+      formatter.locale = Locale(identifier: "en_US_POSIX")
+      formatter.timeZone = TimeZone(secondsFromGMT: 0)
+      formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
+      
+      return formatter.date(from: str)
+   }
+   
+   /**
+    Convert date to iso string
+   */
+   static func dateToIsoString(_ date: Date?) -> String? {
+      guard let date = date else {
+         return nil
+      }
+      
+      let formatter = DateFormatter()
+
+      formatter.calendar = Calendar(identifier: .iso8601)
+      formatter.locale = Locale(identifier: "en_US_POSIX")
+      formatter.timeZone = TimeZone(secondsFromGMT: 0)
+      formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
+      
+      return formatter.string(from: date)
+   }
 }

@@ -21,15 +21,7 @@ import StoreKit
    public var isFinished: Bool
    // Receipt process date
    public var processDate: Date?
-   
-   // Convert the object to a dictionary
-   var dictionary: [String: Any] {
-     return [
-      "token": token,
-      "sku": sku,
-      "context": context
-     ]
-   }
+
 
    init(token: String, sku: String, context: String) {
       self.token = token
@@ -38,4 +30,11 @@ import StoreKit
       self.isFinished = false
    }
 
+   func getDictionary() -> [String: Any] {
+      return [
+         "token": self.token,
+         "sku": self.sku,
+         "context": self.context
+      ]
+   }
 }

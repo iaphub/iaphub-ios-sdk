@@ -8,39 +8,31 @@
 
 /* Begin PBXBuildFile section */
 		9642DA97252BA38D00FB614E /* IHReceiptTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9642DA96252BA38D00FB614E /* IHReceiptTransaction.swift */; };
+		964E862726A8413B00C3BEBA /* IHConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964E862626A8413B00C3BEBA /* IHConfig.swift */; };
+		96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CBD49C271F5F0900B9ECCB /* IHParsable.swift */; };
 		96CFA0A624F82B1900793E42 /* IHUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A524F82B1900793E42 /* IHUser.swift */; };
 		96CFA0A824F82BAA00793E42 /* IHProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A724F82BAA00793E42 /* IHProduct.swift */; };
 		96CFA0B224F89AC000793E42 /* IHError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0B124F89AC000793E42 /* IHError.swift */; };
-		96CFA0B424FBF3B200793E42 /* IHIAP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0B324FBF3B100793E42 /* IHIAP.swift */; };
+		96CFA0B424FBF3B200793E42 /* IHStoreKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */; };
 		96DFDDA2252390CA00A0795A /* IHProductPricing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDA1252390CA00A0795A /* IHProductPricing.swift */; };
 		96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDAD25276C9D00A0795A /* IHReceipt.swift */; };
 		96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDB12527A78100A0795A /* IHActiveProduct.swift */; };
 		96DFDDB82527BB4B00A0795A /* IHReceiptResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDB72527BB4B00A0795A /* IHReceiptResponse.swift */; };
 		96E16E3B2631EE440003C857 /* IHQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E16E3A2631EE440003C857 /* IHQueue.swift */; };
 		96E16E3F26334AAD0003C857 /* IHUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E16E3E26334AAD0003C857 /* IHUtil.swift */; };
-		96FD8C9524DD9F9400122612 /* Iaphub.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FD8C8B24DD9F9400122612 /* Iaphub.framework */; };
-		96FD8C9A24DD9F9400122612 /* IaphubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FD8C9924DD9F9400122612 /* IaphubTests.swift */; };
 		96FD8CBE24DDA3EC00122612 /* Iaphub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FD8CBD24DDA3EC00122612 /* Iaphub.swift */; };
 		96FD8CC024DDA4CF00122612 /* IHAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FD8CBF24DDA4CF00122612 /* IHAPI.swift */; };
 		96FD8CC424DDA8D800122612 /* IHNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FD8CC324DDA8D800122612 /* IHNetwork.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		96FD8C9624DD9F9400122612 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 96FD8C8224DD9F9400122612 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 96FD8C8A24DD9F9400122612;
-			remoteInfo = IaphubSDK;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
 		9642DA96252BA38D00FB614E /* IHReceiptTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHReceiptTransaction.swift; sourceTree = "<group>"; };
+		964E862626A8413B00C3BEBA /* IHConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHConfig.swift; sourceTree = "<group>"; };
+		96CBD49C271F5F0900B9ECCB /* IHParsable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHParsable.swift; sourceTree = "<group>"; };
 		96CFA0A524F82B1900793E42 /* IHUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHUser.swift; sourceTree = "<group>"; };
 		96CFA0A724F82BAA00793E42 /* IHProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProduct.swift; sourceTree = "<group>"; };
 		96CFA0B124F89AC000793E42 /* IHError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHError.swift; sourceTree = "<group>"; };
-		96CFA0B324FBF3B100793E42 /* IHIAP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHIAP.swift; sourceTree = "<group>"; };
+		96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHStoreKit.swift; sourceTree = "<group>"; };
 		96DFDDA1252390CA00A0795A /* IHProductPricing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProductPricing.swift; sourceTree = "<group>"; };
 		96DFDDAD25276C9D00A0795A /* IHReceipt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHReceipt.swift; sourceTree = "<group>"; };
 		96DFDDB12527A78100A0795A /* IHActiveProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHActiveProduct.swift; sourceTree = "<group>"; };
@@ -48,9 +40,6 @@
 		96E16E3A2631EE440003C857 /* IHQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHQueue.swift; sourceTree = "<group>"; };
 		96E16E3E26334AAD0003C857 /* IHUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHUtil.swift; sourceTree = "<group>"; };
 		96FD8C8B24DD9F9400122612 /* Iaphub.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Iaphub.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		96FD8C9424DD9F9400122612 /* IaphubTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IaphubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		96FD8C9924DD9F9400122612 /* IaphubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IaphubTests.swift; sourceTree = "<group>"; };
-		96FD8C9B24DD9F9400122612 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		96FD8CBD24DDA3EC00122612 /* Iaphub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Iaphub.swift; sourceTree = "<group>"; };
 		96FD8CBF24DDA4CF00122612 /* IHAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHAPI.swift; sourceTree = "<group>"; };
 		96FD8CC324DDA8D800122612 /* IHNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHNetwork.swift; sourceTree = "<group>"; };
@@ -64,14 +53,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		96FD8C9124DD9F9400122612 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				96FD8C9524DD9F9400122612 /* Iaphub.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -79,7 +60,6 @@
 			isa = PBXGroup;
 			children = (
 				96FD8C8D24DD9F9400122612 /* Iaphub */,
-				96FD8C9824DD9F9400122612 /* IaphubTests */,
 				96FD8C8C24DD9F9400122612 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,7 +68,6 @@
 			isa = PBXGroup;
 			children = (
 				96FD8C8B24DD9F9400122612 /* Iaphub.framework */,
-				96FD8C9424DD9F9400122612 /* IaphubTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -106,21 +85,14 @@
 				96CFA0B124F89AC000793E42 /* IHError.swift */,
 				96CFA0A524F82B1900793E42 /* IHUser.swift */,
 				96FD8CBF24DDA4CF00122612 /* IHAPI.swift */,
-				96CFA0B324FBF3B100793E42 /* IHIAP.swift */,
+				96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */,
 				96FD8CC324DDA8D800122612 /* IHNetwork.swift */,
 				96E16E3A2631EE440003C857 /* IHQueue.swift */,
 				96E16E3E26334AAD0003C857 /* IHUtil.swift */,
+				964E862626A8413B00C3BEBA /* IHConfig.swift */,
+				96CBD49C271F5F0900B9ECCB /* IHParsable.swift */,
 			);
 			path = Iaphub;
-			sourceTree = "<group>";
-		};
-		96FD8C9824DD9F9400122612 /* IaphubTests */ = {
-			isa = PBXGroup;
-			children = (
-				96FD8C9924DD9F9400122612 /* IaphubTests.swift */,
-				96FD8C9B24DD9F9400122612 /* Info.plist */,
-			);
-			path = IaphubTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -154,24 +126,6 @@
 			productReference = 96FD8C8B24DD9F9400122612 /* Iaphub.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		96FD8C9324DD9F9400122612 /* IaphubTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 96FD8CA224DD9F9400122612 /* Build configuration list for PBXNativeTarget "IaphubTests" */;
-			buildPhases = (
-				96FD8C9024DD9F9400122612 /* Sources */,
-				96FD8C9124DD9F9400122612 /* Frameworks */,
-				96FD8C9224DD9F9400122612 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				96FD8C9724DD9F9400122612 /* PBXTargetDependency */,
-			);
-			name = IaphubTests;
-			productName = IaphubSDKTests;
-			productReference = 96FD8C9424DD9F9400122612 /* IaphubTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -185,9 +139,6 @@
 					96FD8C8A24DD9F9400122612 = {
 						CreatedOnToolsVersion = 11.6;
 						LastSwiftMigration = 1200;
-					};
-					96FD8C9324DD9F9400122612 = {
-						CreatedOnToolsVersion = 11.6;
 					};
 				};
 			};
@@ -205,20 +156,12 @@
 			projectRoot = "";
 			targets = (
 				96FD8C8A24DD9F9400122612 /* Iaphub */,
-				96FD8C9324DD9F9400122612 /* IaphubTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		96FD8C8924DD9F9400122612 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		96FD8C9224DD9F9400122612 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -233,10 +176,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				9642DA97252BA38D00FB614E /* IHReceiptTransaction.swift in Sources */,
+				964E862726A8413B00C3BEBA /* IHConfig.swift in Sources */,
 				96CFA0A624F82B1900793E42 /* IHUser.swift in Sources */,
 				96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */,
 				96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */,
-				96CFA0B424FBF3B200793E42 /* IHIAP.swift in Sources */,
+				96CFA0B424FBF3B200793E42 /* IHStoreKit.swift in Sources */,
+				96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */,
 				96E16E3B2631EE440003C857 /* IHQueue.swift in Sources */,
 				96CFA0B224F89AC000793E42 /* IHError.swift in Sources */,
 				96DFDDA2252390CA00A0795A /* IHProductPricing.swift in Sources */,
@@ -249,23 +194,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		96FD8C9024DD9F9400122612 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				96FD8C9A24DD9F9400122612 /* IaphubTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		96FD8C9724DD9F9400122612 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 96FD8C8A24DD9F9400122612 /* Iaphub */;
-			targetProxy = 96FD8C9624DD9F9400122612 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		96FD8C9D24DD9F9400122612 /* Debug */ = {
@@ -443,44 +372,6 @@
 			};
 			name = Release;
 		};
-		96FD8CA324DD9F9400122612 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = ZT88ZUX49N;
-				INFOPLIST_FILE = IaphubTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = iaphub.IaphubTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		96FD8CA424DD9F9400122612 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = ZT88ZUX49N;
-				INFOPLIST_FILE = IaphubTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = iaphub.IaphubTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -491,7 +382,7 @@
 				96FD8C9E24DD9F9400122612 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		96FD8C9F24DD9F9400122612 /* Build configuration list for PBXNativeTarget "Iaphub" */ = {
 			isa = XCConfigurationList;
@@ -500,16 +391,7 @@
 				96FD8CA124DD9F9400122612 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		96FD8CA224DD9F9400122612 /* Build configuration list for PBXNativeTarget "IaphubTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				96FD8CA324DD9F9400122612 /* Debug */,
-				96FD8CA424DD9F9400122612 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

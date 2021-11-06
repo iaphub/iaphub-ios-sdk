@@ -36,7 +36,6 @@ class IHReceiptResponse {
             transactions.append(transaction)
          } catch {
             // If the product cannot be parsed, ignore it
-            print("Error: Receipt response transaction parsing failed, transaction ignored");
          }
       }
       return transactions

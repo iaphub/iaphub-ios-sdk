@@ -24,7 +24,7 @@ extension NSDecimalNumber {
     
 }
 
-@objc public class IHProduct: NSObject {
+@objc public class IHProduct: NSObject, IHParsable {
 
    // Product id
    @objc public var id: String
@@ -75,15 +75,50 @@ extension NSDecimalNumber {
    required init(_ data: Dictionary<String, Any>) throws {
       // Checking mandatory properties
       guard let id = data["id"] as? String, let type = data["type"] as? String, let sku = data["sku"] as? String else {
-         throw IHError(IHErrors.unknown, message: "product parsing failed");
+         throw IHError(IHErrors.unexpected, message: "product parsing from data failed, id: \(data["id"]), type: \(data["type"]), sku: \(data["sku"])");
       }
       // Assign properties
       self.id = id;
       self.type = type;
       self.sku = sku;
+      self.price = Decimal((data["price"] as? Double) ?? 0)
+      self.currency = data["currency"] as? String
+      self.localizedPrice = data["localizedPrice"] as? String
+      self.localizedTitle = data["localizedTitle"] as? String
+      self.localizedDescription = data["localizedDescription"] as? String
       self.group = data["group"] as? String
       self.groupName = data["groupName"] as? String
       self.subscriptionPeriodType = data["subscriptionPeriodType"] as? String
+      self.subscriptionDuration = data["subscriptionDuration"] as? String
+      self.subscriptionIntroPrice = Decimal((data["subscriptionIntroPrice"] as? Double) ?? 0)
+      self.subscriptionIntroLocalizedPrice = data["subscriptionIntroLocalizedPrice"] as? String
+      self.subscriptionIntroPayment = data["subscriptionIntroPayment"] as? String
+      self.subscriptionIntroDuration = data["subscriptionIntroPayment"] as? String
+      self.subscriptionIntroCycles = (data["subscriptionIntroCycles"] as? Int) ?? 0
+      self.subscriptionTrialDuration = data["subscriptionTrialDuration"] as? String
+   }
+   
+   func getDictionary() -> [String: Any] {
+      return [
+         "id": self.id,
+         "type": self.type,
+         "sku": self.sku,
+         "price": self.price,
+         "currency": self.currency as Any,
+         "localizedPrice": self.localizedPrice as Any,
+         "localizedTitle": self.localizedTitle as Any,
+         "localizedDescription": self.localizedDescription as Any,
+         "group": self.group as Any,
+         "groupName": self.groupName as Any,
+         "subscriptionPeriodType": self.subscriptionPeriodType as Any,
+         "subscriptionDuration": self.subscriptionDuration as Any,
+         "subscriptionIntroPrice": self.subscriptionIntroPrice as Any,
+         "subscriptionIntroLocalizedPrice": self.subscriptionIntroLocalizedPrice as Any,
+         "subscriptionIntroPayment": self.subscriptionIntroPayment as Any,
+         "subscriptionIntroDuration": self.subscriptionIntroDuration as Any,
+         "subscriptionIntroCycles": self.subscriptionIntroCycles as Any,
+         "subscriptionTrialDuration": self.subscriptionTrialDuration as Any
+      ]
    }
    
    func setSKProduct(_ skProduct: SKProduct) {

@@ -8,21 +8,21 @@
 
 import Foundation
 
-class IHProductPricing {
+class IHProductPricing: IHParsable {
    // Product id
    public var id: String
    // Product price
    public var price: Decimal = 0
    // Product currency
    public var currency: String
-   
-   // Convert the object to a dictionary
-   var dictionary: [String: Any] {
-     return [
-      "id": id,
-      "price": price,
-      "currency": currency
-     ]
+
+   required init(_ data: Dictionary<String, Any>) throws {
+      guard let id = data["id"] as? String, let price = data["price"] as? Double, let currency = data["currency"] as? String else {
+         throw IHError(IHErrors.unexpected, message: "product pricing parsing from data failed");
+      }
+      self.id = id
+      self.price = Decimal(price)
+      self.currency = currency
    }
    
    init(id: String, price: Decimal, currency: String) {
@@ -31,4 +31,11 @@ class IHProductPricing {
       self.currency = currency
    }
    
+   func getDictionary() -> [String: Any] {
+      return [
+         "id": self.id as Any,
+         "price": self.price as Any,
+         "currency": self.currency as Any
+      ]
+   }
 }

@@ -13,6 +13,7 @@ class IHNetwork {
    var endpoint : String
    var headers : Dictionary<String, String>
    var params : Dictionary<String, String>
+   var mock : ((String, String, Dictionary<String, Any>) -> [String: Any]?)? = nil
     
     init(endpoint: String) {
       self.endpoint = endpoint
@@ -45,6 +46,14 @@ class IHNetwork {
     Send a request
    */
    public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+      // Use mock if defined
+      if (self.mock != nil) {
+         let mockData = self.mock?(type, route, params)
+         
+         if (mockData != nil) {
+            return completion(nil, mockData)
+         }
+      }
       // Retry request up to 3 times with a delay of 1 second
       IHUtil.retry(
          times: 3,
@@ -120,6 +129,7 @@ class IHNetwork {
       for key in self.headers.keys {
          request.addValue(self.headers[key]!, forHTTPHeaderField: key)
       }
+
       return request
    }
 
@@ -148,10 +158,6 @@ class IHNetwork {
             guard let httpResponse = response as? HTTPURLResponse else {
                return completion(IHError(IHErrors.network_error, message: "http response invalid"), nil, nil)
             }
-            // Check http response code
-            if (httpResponse.statusCode < 200 || httpResponse.statusCode > 299) {
-               return completion(IHError(IHErrors.network_error, message: "http status code failed"), nil, httpResponse)
-            }
             // Check we have a response
             guard let data = data else {
                return completion(IHError(IHErrors.network_error, message: "response empty"), nil, httpResponse)
@@ -160,7 +166,7 @@ class IHNetwork {
             do {
                // Parse JSON
                guard let responseData = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-                  return completion(IHError(IHErrors.network_error, message: "response parsing failed"), nil, httpResponse)
+                  return completion(IHError(IHErrors.network_error, message: "response parsing failed (status code: \(httpResponse.statusCode))"), nil, httpResponse)
                }
                // Check if the response returned an error
                if let error = responseData["error"] as? String {
