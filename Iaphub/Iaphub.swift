@@ -281,6 +281,7 @@ import UIKit
    private func refreshUser(interval: Double = 0, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
       // Check the sdk is started
       guard let user = self.user else {
+         completion?(IHError(IHErrors.unexpected, message: "IAPHUB not started"), false, false)
          return
       }
       // Refresh callback function
