@@ -45,7 +45,7 @@ class IHNetwork {
    /**
     Send a request
    */
-   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, retry: Int = 2, silentLog: Bool = false, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 8.0, retry: Int = 2, silentLog: Bool = false, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
       // Use mock if defined
       if (self.mock != nil) {
          let mockData = self.mock?(type, route, params)
@@ -111,7 +111,7 @@ class IHNetwork {
          throw IHError(IHErrors.network_error, IHNetworkErrors.url_invalid)
       }
       // Create request
-      var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 20.0)
+      var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
 
       request.httpMethod = "GET"
       for key in headers.keys {
@@ -130,7 +130,7 @@ class IHNetwork {
          requestParams[key] = self.params[key]
       }
       // Create request
-      var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 20.0)
+      var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
       let json = try JSONSerialization.data(withJSONObject: requestParams)
       
       request.httpMethod = "POST"

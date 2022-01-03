@@ -60,7 +60,9 @@ class IHAPI {
       self.network.send(
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/user/\(currentUserId)/login",
-         params: ["userId": newUserId]
+         params: ["userId": newUserId],
+         timeout: 8,
+         retry: 0
       ) {(err, data) -> Void in
          completion(err);
       }
@@ -83,11 +85,16 @@ class IHAPI {
     Post receipt
    */
    public func postReceipt(_ receipt: Dictionary<String, Any>, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+      var timeout: Double = 35
+      
+      if (receipt["context"] as? String == "purchase") {
+         timeout = 65
+      }
       self.network.send(
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/receipt",
          params: receipt,
-         timeout: 45.0,
+         timeout: timeout,
          completion
       )
    }
@@ -113,7 +120,7 @@ class IHAPI {
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/log",
          params: params,
-         timeout: 10,
+         timeout: 4,
          retry: 0,
          silentLog: true
       )  {(err, data) -> Void in
