@@ -151,8 +151,6 @@ class IHLocalizedError: LocalizedError {
       Iaphub.shared.user?.sendLog([
          "message": self.message,
          "params": self.params.merging([
-            "osVersion": Iaphub.shared.osVersion,
-            "sdkVersion": Iaphub.shared.sdkVersion,
             "code": self.code,
             "subcode": self.subcode ?? ""
          ]) { (_, new) in new },

@@ -53,13 +53,19 @@ import Foundation
    var enableDeferredPurchaseListener: Bool = true
 
    init(id: String?, sdk: Iaphub, enableDeferredPurchaseListener: Bool = true, onUserUpdate: (() -> Void)?, onDeferredPurchase: ((IHReceiptTransaction) -> Void)?) {
+      var hasAnonymousIdSaveFailed = false
+      var anonymousIdSaveKeychainError: OSStatus? = nil
+      
       // If id defined use it
       if let userId = id {
          self.id = userId
       }
       // Otherwise generate anonymous id
       else {
-         self.id = IHUser.getAnonymousId()
+         self.id = IHUser.getAnonymousId(onSaveFailure: { keychainErr in
+            hasAnonymousIdSaveFailed = true
+            anonymousIdSaveKeychainError = keychainErr
+         })
       }
       self.sdk = sdk
       self.enableDeferredPurchaseListener = enableDeferredPurchaseListener
@@ -67,22 +73,38 @@ import Foundation
       self.onDeferredPurchase = onDeferredPurchase
       super.init()
       self.api = IHAPI(user: self)
+      // Handle anonymous id save failure
+      if (hasAnonymousIdSaveFailed) {
+         self.onAnonymousIdSaveFailure(["keychainErr": anonymousIdSaveKeychainError, "method": "init"])
+      }
    }
 
    /**
     Get anonymous id
     */
-   static func getAnonymousId() -> String {
+   static func getAnonymousId(onSaveFailure: ((OSStatus?) -> Void)? = nil) -> String {
       let key = "iaphub_anonymous_user_id"
+      // Search for id in keychain
       if let id = IHUtil.getFromKeychain(key) {
          return id
       }
-      let id = IHConfig.anonymousUserPrefix + UUID().uuidString.lowercased()
-      let err = IHUtil.saveToKeychain(key: key, value: id)
-      
-      if (err != nil) {
-         IHError(IHErrors.unexpected, IHUnexpectedErrors.anonymous_id_keychain_save_failed, message: err?.message)
+      // Search for id in localstorage
+      if let id = IHUtil.getFromLocalstorage(key) {
+         return id
       }
+      // Otherwise generate new anonymous id
+      let id = IHConfig.anonymousUserPrefix + UUID().uuidString.lowercased()
+      // Save it in keychain and localstorage
+      let keychainErr = IHUtil.saveToKeychain(key: key, value: id)
+      IHUtil.saveToLocalstorage(key: key, value: id)
+      // Try to get the values from keychain and localstorage
+      let keychainId = IHUtil.getFromKeychain(key)
+      let localstorageId = IHUtil.getFromLocalstorage(key)
+      // If they are both missing, trigger failure callback
+      if (keychainId == nil && localstorageId == nil) {
+         onSaveFailure?(keychainErr)
+      }
+      
       return id
    }
    
@@ -104,6 +126,13 @@ import Foundation
       }
       
       return true
+   }
+   
+   /**
+    Triggered when the anonymous id save failed
+    */
+   func onAnonymousIdSaveFailure(_ params: [String: Any?]) {
+      IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_anonymous_id_failed, params: params as Dictionary<String, Any>)
    }
    
    /**
@@ -221,11 +250,7 @@ import Foundation
       
       let str = String(data: data!, encoding: String.Encoding.utf8)
       let prefix = self.isAnonymous() ? "iaphub_user_a" : "iaphub_user"
-      let err = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
-      
-      if (err != nil) {
-         IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_keychain_failed, message: err?.message)
-      }
+      _ = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
    }
 
    /**
@@ -675,7 +700,9 @@ import Foundation
          return
       }
       // Update user id
-      self.id = IHUser.getAnonymousId()
+      self.id = IHUser.getAnonymousId(onSaveFailure: { keychainErr in
+         self.onAnonymousIdSaveFailure(["keychainErr": keychainErr, "method": "logout"])
+      })
       // Reset user
       self.reset()
    }
@@ -759,16 +786,18 @@ import Foundation
             "framework": Iaphub.shared.sdk,
             "code_version": IHConfig.sdkVersion,
             "person": ["id": Iaphub.shared.appId],
-            "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")"
+            "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")",
+            "custom": [
+               "osVersion": Iaphub.shared.osVersion,
+               "sdkVersion": Iaphub.shared.sdkVersion,
+               "userIsInitialized": self.isInitialized,
+               "userHasProducts": (!self.productsForSale.isEmpty || !self.activeProducts.isEmpty)
+            ]
          ]
       ]
-      print("-> Send log")
       // Add params
-      if let custom = options["params"] as? Dictionary<String, Any> {
-         params["data"]?["custom"] = custom.merging([
-            "userIsInitialized": self.isInitialized,
-            "userHasProducts": (!self.productsForSale.isEmpty || !self.activeProducts.isEmpty)
-         ]) { (_, new) in new }
+      if let custom = options["params"] as? Dictionary<String, Any>, let originalCustom = params["data"]?["custom"] as? Dictionary<String, Any>  {
+         params["data"]?["custom"] = custom.merging(originalCustom) { (_, new) in new }
       }
       // Add fingerprint
       if let fingerprint = options["fingerprint"] as? String {

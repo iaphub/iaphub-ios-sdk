@@ -114,7 +114,7 @@ class IHUtil {
    /**
     Delete key from keychain
     */
-   static func deleteFromKeychain(key: String) -> IHLocalizedError? {
+   static func deleteFromKeychain(key: String) -> OSStatus? {
       let keychainQueryDictionary: [String:Any] = Self.setupKeychainQueryDictionary(key)
       let status: OSStatus = SecItemDelete(keychainQueryDictionary as CFDictionary)
 
@@ -122,14 +122,14 @@ class IHUtil {
          return nil
       }
       else {
-         return self.getKeychainStatusLocalizedError(status)
+         return status
       }
    }
    
    /**
     Save value to keychain
     */
-   static func saveToKeychain(key: String, value: String?) -> IHLocalizedError? {
+   static func saveToKeychain(key: String, value: String?) -> OSStatus? {
       // Delete if the value is nil
       guard let value = value else {
          return Self.deleteFromKeychain(key: key)
@@ -139,8 +139,8 @@ class IHUtil {
       var keychainQueryDictionary: [String:Any] = Self.setupKeychainQueryDictionary(key)
 
       keychainQueryDictionary[kSecValueData as String] = data
-      // Assign default protection - Protect the keychain entry so it's only valid when the device is unlocked
-      keychainQueryDictionary[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+      // Assign default protection - Protect the keychain entry so it's only valid after first unlock
+      keychainQueryDictionary[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
 
       let status: OSStatus = SecItemAdd(keychainQueryDictionary as CFDictionary, nil)
 
@@ -155,27 +155,37 @@ class IHUtil {
          if (status == errSecSuccess) {
             return nil
          }
-         return self.getKeychainStatusLocalizedError(status)
+         return status
       }
       
-      return self.getKeychainStatusLocalizedError(status)
+      return status
    }
    
    /**
-    Convert ISO string to date
-   */
-   static func getKeychainStatusLocalizedError(_ status: OSStatus) -> IHLocalizedError {
-      var errorDescription = "unknown error"
-
-      if #available(iOS 11.3, *) {
-         if let errMessage = SecCopyErrorMessageString(status, nil) as String? {
-            errorDescription = errMessage
-         }
-      }
-      else {
-         errorDescription = errorDescription + ", error message not available below iOS 11.3"
-      }
-      return IHLocalizedError(errorDescription)
+    Save value to localstorage
+    */
+   static func saveToLocalstorage(key: String, value: String?) {
+      let defaults = UserDefaults.standard
+      
+      defaults.set(value, forKey: key)
+   }
+   
+   /**
+    Get value from localstorage
+    */
+   static func getFromLocalstorage(_ key: String) -> String? {
+      let defaults = UserDefaults.standard
+      
+      return defaults.string(forKey: key)
+   }
+   
+   /**
+    Delete value from localstorage
+    */
+   static func deleteFromLocalstorage(key: String) {
+      let defaults = UserDefaults.standard
+      
+      return defaults.removeObject(forKey: key)
    }
    
    /**

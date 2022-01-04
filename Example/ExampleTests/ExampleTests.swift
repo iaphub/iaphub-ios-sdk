@@ -54,6 +54,7 @@ class IaphubTests: XCTestCase {
       self.testSession.clearTransactions()
       self.delegate = IaphubTestsDelegate()
       Iaphub.delegate = self.delegate
+      Iaphub.shared.logs = false
       if (iaphubStarted == false) {
          iaphubStarted = true
          Iaphub.start(
@@ -61,9 +62,8 @@ class IaphubTests: XCTestCase {
             apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3"
          )
       }
-      Iaphub.shared.logs = false
    }
-
+   
    func test01_getProductsForSale() async throws {
       IHUtil.deleteFromKeychain(key: "iaphub_user_a_61718bfd9bf07f0c7d2357d1")
       IHUtil.deleteFromKeychain(key: "iaphub_user_61718bfd9bf07f0c7d2357d1")
