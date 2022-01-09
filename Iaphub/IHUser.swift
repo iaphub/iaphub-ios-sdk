@@ -269,15 +269,13 @@ import Foundation
     Fetch user
    */
    public func fetch(_ completion: @escaping (IHError?, Bool) -> Void) {
-      var isUpdated = false
-
-      // Otherwise fetch user
+      // Get api
       guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), isUpdated)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), false)
       }
       // Check if the user id is valid
       if (self.isAnonymous() == false && IHUser.isValidId(self.id) == false) {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))", params: ["userId": self.id]), isUpdated)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))", params: ["userId": self.id]), false)
       }
       // Add completion to the requests
       self.fetchRequests.append(completion)
@@ -287,7 +285,7 @@ import Foundation
       }
       self.isFetching = true
       // Method to complete fetch request
-      func completeFetchRequest(err: IHError?) {
+      func completeFetchRequest(err: IHError?, isUpdated: Bool) {
          let fetchRequests = self.fetchRequests
          
          // Clean requests
@@ -306,11 +304,12 @@ import Foundation
             self.isInitialized = true
          }
          // Call requests with the error
+         var requestIsUpdated = isUpdated
          fetchRequests.forEach({ (request) in
-            request(err, isUpdated)
+            request(err, requestIsUpdated)
             // Only mark as updated for the first request
-            if (isUpdated == true) {
-               isUpdated = false
+            if (requestIsUpdated) {
+               requestIsUpdated = false
                self.onUserUpdate?()
             }
          })
@@ -321,39 +320,51 @@ import Foundation
       }
       // Get data from API
       api.getUser({ (err, data) in
-         var data = data
+         // Update user using API data
+         self.updateFromApiData(err: err, data: data) { updateErr, isUpdated in
+            completeFetchRequest(err: updateErr, isUpdated: isUpdated)
+         }
+      })
+   }
+   
+   /**
+    Update user using API data
+   */
+   private func updateFromApiData(err: IHError?, data: [String: Any]?, _ completion: @escaping (IHError?, Bool) -> Void) {
+      var data = data
+      var isUpdated = false
+
+      if (err != nil) {
+         // Clear products if the platform is disabled
+         if let err = err, err.code == "server_error" && err.subcode == "platform_disabled" {
+            data = ["productsForSale": [], "activeProducts": []]
+         }
+         // Otherwise return an error
+         else {
+            return completion(err, isUpdated)
+         }
+      }
+      guard let data = data else {
+         return completion(err, isUpdated)
+      }
+      // Save products dictionnary
+      let productsDictionnary = self.getDictionnary(productsOnly: true)
+      // Update data
+      self.update(data, {(err) in
+         // Check error
          if (err != nil) {
-            // Clear products if the platform is disabled
-            if let err = err, err.code == "server_error" && err.subcode == "platform_disabled" {
-               data = ["productsForSale": [], "activeProducts": []]
-            }
-            // Otherwise return an error
-            else {
-               return completeFetchRequest(err: err)
-            }
+            return completion(err, isUpdated)
          }
-         guard let data = data else {
-            return completeFetchRequest(err: err)
+         // Check if the user has been updated
+         let newProductsDictionnary = self.getDictionnary(productsOnly: true)
+         if (self.isInitialized == true && NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
+            isUpdated = true
          }
-         // Save products dictionnary
-         let productsDictionnary = self.getDictionnary(productsOnly: true)
-         // Update data
-         self.update(data, {(err) in
-            // Check error
-            if (err != nil) {
-               return completeFetchRequest(err: err)
-            }
-            // Check if the user has been updated
-            let newProductsDictionnary = self.getDictionnary(productsOnly: true)
-            if (self.isInitialized == true && NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
-               isUpdated = true
-            }
-            // Update pricing
-            self.updatePricings() { (err) in
-               // No need to throw an error if the pricing update fails, the system can work without it
-               completeFetchRequest(err: nil)
-            }
-         })
+         // Update pricing
+         self.updatePricings() { (_) in
+            // No need to throw an error if the pricing update fails, the system can work without it
+            completion(nil, isUpdated)
+         }
       })
    }
 
