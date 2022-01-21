@@ -121,9 +121,7 @@ The user will switch back to his anonymous user id (prefixed with 'a:').<br/>
 ⚠ The user will be reset, `didReceiveUserUpdate` will only be called until after the user has been loaded first (using getProductsForSale/getActiveProducts).<br/>
 
 ```swift
-Iaphub.logout({ (err: IHError?) in
-  // On a success the err should be nil
-});
+Iaphub.logout();
 ```
 
 ## Set user tags
@@ -209,14 +207,6 @@ If you're looking to display a message when a user has a subscription on a `retr
   })
 ```
 
-#### Check subscription status
-
-When retrieving a subscription from the active products, you should also check if it is in a retry period using the `isSubscriptionRetryPeriod` and `isSubscriptionGracePeriod` properties.<br/>
-- On a **retry period with a grace period** the user should still have access to the features offered by the subscription and you should display a message asking for the user to update its payment informations.
-- On a **retry period with no grace period** you should restrict the access to the features offered by your subscription and display a message asking for the user to update its payment informations.
-
-More informations on the [IAPHUB documentation](https://iaphub.com/docs/getting-started/manage-subscription-states#subscription-renewal-retry).
-
 ## Buy a product
 Call the ``buy`` method to buy a product<br/><br/>
 ℹ️ The method needs the product sku that you would get from one of the products of `getProductsForSale`.<br/>
@@ -297,8 +287,7 @@ Iaphub.buy(sku: sku, { (err: IHError?, transaction: IHReceiptTransaction?) in
 
 ## Restore user purchases
 Call the ``restore`` method to restore the user purchases<br/><br/>
-ℹ️ You should display a restore button somewhere in your app (usually on the settings page).<br/>
-ℹ️ If you logged in using the `device id`, an user using a new device will have to restore its purchases since the `device id` will be different.
+ℹ️ You must display a button somewhere in your app in order to allow the user to restore its purchases.<br/>
 
 ```swift
 Iaphub.restore({ (err: IHError?) in
@@ -339,7 +328,7 @@ Iaphub.restore({ (err: IHError?) in
 | Prop  | Type | Description |
 | :------------ |:---------------:| :-----|
 | purchase | `String?` | Purchase id (From IAPHUB) |
-| purchaseDate | `String?` | Purchase date |
+| purchaseDate | `Date?` | Purchase date |
 | platform | `String?` | Platform of the purchase (Possible values: 'ios', 'android') |
 | expirationDate | `Date?` | Subscription expiration date |
 | isSubscriptionRenewable | `Bool = false` | True if the auto-renewal is enabled |
@@ -362,5 +351,5 @@ Iaphub.restore({ (err: IHError?) in
 
 ## Full example
 
-You should check out the [Example app](https://github.com/iaphub/react-native-iaphub/tree/master/Example).
+You should check out the [Example app](https://github.com/iaphub/iaphub-ios-sdk/tree/master/Example).
 <br/>
