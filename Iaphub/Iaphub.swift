@@ -348,67 +348,74 @@ import UIKit
                var shouldFinishReceipt = false
                var transaction: IHReceiptTransaction? = nil
 
-               // Check receipt response
-               if error == nil, let receiptResponse = receiptResponse {
-                  // Finish receipt
-                  shouldFinishReceipt = true
-                  // Check if the receipt is invalid
-                  if (receiptResponse.status == "invalid") {
-                     error = IHError(IHErrors.receipt_invalid)
-                  }
-                  // Check if the receipt is failed
-                  else if (receiptResponse.status == "failed") {
-                     error = IHError(IHErrors.receipt_failed)
-                  }
-                  // Check if the receipt is stale
-                  else if (receiptResponse.status == "stale") {
-                     error = IHError(IHErrors.receipt_stale)
-                  }
-                  // Check any other status different than success
-                  else if (receiptResponse.status != "success") {
-                     error = IHError(IHErrors.unexpected, message: "Receipt validation failed")
-                     shouldFinishReceipt = false
-                  }
-                  // Get transaction if we're in a purchase context
-                  if (error == nil && receipt.context == "purchase") {
-                     // Get the new transaction from the response
-                     transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
-                     // If transaction not found, look if it is a product change
-                     if (transaction == nil) {
-                        transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
-                     }
-                     // Otherwise we have an error
-                     if (transaction == nil) {
-                        // Check if it is because of a subscription already active
-                        let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku})
-                        if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
-                           error = IHError(IHErrors.product_already_purchased, delegate: false)
-                        }
-                        // Otherwise it means the product sku wasn't in the receipt
-                        else {
-                           error = IHError(IHErrors.transaction_not_found)
-                        }
-                     }
-                  }
-               }
-               // Refresh user
-               self.refreshUser(force: true, {(fetchErr, isFetched, isUpdated) in
-                  // If the product has already been purchased, check if a restore is needed
-                  if (error?.code == "product_already_purchased") {
-                     let product = user.activeProducts.first(where: { $0.sku == receipt.sku})
-                     
-                     if (product == nil) {
-                        error = IHError(IHErrors.product_owned_different_user)
-                     }
-                     else {
-                        error = IHError(IHErrors.product_already_purchased)
-                     }
-                  }
+               func callFinish() {
                   // Finish receipt
                   finish(error, shouldFinishReceipt, transaction)
                   // Trigger didProcessReceipt event
                   Self.delegate?.didProcessReceipt?(err: error, receipt: receipt)
-               })
+               }
+               // Check receipt response
+               if error == nil, let receiptResponse = receiptResponse {
+                  // Refresh user in case the user id has been updated
+                  user.refresh({ (_, _, _) in
+                     // Finish receipt
+                     shouldFinishReceipt = true
+                     // Check if the receipt is invalid
+                     if (receiptResponse.status == "invalid") {
+                        error = IHError(IHErrors.receipt_invalid)
+                     }
+                     // Check if the receipt is failed
+                     else if (receiptResponse.status == "failed") {
+                        error = IHError(IHErrors.receipt_failed)
+                     }
+                     // Check if the receipt is stale
+                     else if (receiptResponse.status == "stale") {
+                        error = IHError(IHErrors.receipt_stale)
+                     }
+                     // Check any other status different than success
+                     else if (receiptResponse.status != "success") {
+                        error = IHError(IHErrors.unexpected, message: "Receipt validation failed")
+                        shouldFinishReceipt = false
+                     }
+                     // Get transaction if we're in a purchase context
+                     if (error == nil && receipt.context == "purchase") {
+                        // Get the new transaction from the response
+                        transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
+                        // If transaction not found, look if it is a product change
+                        if (transaction == nil) {
+                           transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
+                        }
+                        // Otherwise we have an error
+                        if (transaction == nil) {
+                           // Check if it is because of a subscription already active
+                           let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku})
+                           if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
+                              // Check if the transaction belongs to a different user
+                              if (oldTransaction?.user != nil && user.iaphubId != nil && oldTransaction?.user != user.iaphubId) {
+                                 error = IHError(IHErrors.user_conflict)
+                              }
+                              else {
+                                 error = IHError(IHErrors.product_already_purchased)
+                              }
+                           }
+                           // Otherwise it means the product sku wasn't in the receipt
+                           else {
+                              error = IHError(IHErrors.transaction_not_found)
+                           }
+                        }
+                        // If we have a transaction check that it belongs to the same user
+                        else if (transaction?.user != nil && user.iaphubId != nil && transaction?.user != user.iaphubId) {
+                           error = IHError(IHErrors.user_conflict)
+                        }
+                     }
+                     // Call finish
+                     callFinish()
+                  })
+               }
+               // Call finish if the receipt failed
+               else {
+                  callFinish()
+               }
             })
          },
          // Event triggered when the purchase of a product is requested

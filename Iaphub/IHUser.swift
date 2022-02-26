@@ -12,6 +12,8 @@ import Foundation
 
    // User id
    @objc public var id: String
+   // Iaphub user id
+   @objc public var iaphubId: String? = nil
    // Products for sale of the user
    @objc public var productsForSale: [IHProduct] = []
    // Active products of the user
@@ -331,6 +333,8 @@ import Foundation
          })
          // No need to filter active products
          self.activeProducts = activeProducts
+         // Update iaphub id
+         self.iaphubId = data["id"] as? String
          // Mark needsFetch as false
          self.needsFetch = false
          // Call completion

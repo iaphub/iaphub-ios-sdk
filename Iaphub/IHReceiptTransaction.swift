@@ -12,9 +12,12 @@ import Foundation
    
    // Transaction webhook status
    @objc public var webhookStatus: String?
+   // User id
+   @objc public var user: String?
    
    required init(_ data: Dictionary<String, Any>) throws {
       try super.init(data)
       self.webhookStatus = data["webhookStatus"] as? String
+      self.user = data["user"] as? String
    }
 }
