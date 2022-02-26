@@ -53,7 +53,7 @@ class IHQueue {
          if let completion = completion {
             self.completionQueue.append(completion)
          }
-         // Stop here if the queue is paused
+         // Stop here if the queue is already running
          if (self.isRunning) {
             return
          }
