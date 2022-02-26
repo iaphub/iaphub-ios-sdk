@@ -158,7 +158,7 @@ class IHUtil {
    /**
     Parse items
    */
-   static func parseItems<T: IHParsable>(data: Any?, type: T.Type) -> [T] {
+   static func parseItems<T: IHParsable>(data: Any?, type: T.Type, failure: @escaping (Error, Dictionary<String, Any>) -> Void) -> [T] {
       let itemsDictionary = (data as? [Dictionary<String, Any>]) ?? [Dictionary<String, Any>]()
       var items = [T]()
 
@@ -167,7 +167,7 @@ class IHUtil {
             let item = try type.init(item)
             items.append(item)
          } catch {
-            // If the product cannot be parsed, ignore it
+            failure(error, item)
          }
       }
       return items

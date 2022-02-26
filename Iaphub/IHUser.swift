@@ -122,9 +122,15 @@ import Foundation
             }
             if let id = json["id"] as? String, id == self.id {
                self.fetchDate = IHUtil.dateFromIsoString(json["fetchDate"] as? String)
-               self.productsForSale = IHUtil.parseItems(data: json["productsForSale"], type: IHProduct.self)
-               self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self)
-               self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self)
+               self.productsForSale = IHUtil.parseItems(data: json["productsForSale"], type: IHProduct.self, failure: { err, _ in
+                  IHError(IHErrors.unexpected, message: "error parsing product for sale of cached data, product ignored, \(err)")
+               })
+               self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self, failure: { err, _ in
+                  IHError(IHErrors.unexpected, message: "error parsing active product of cached data, product ignored, \(err)")
+               })
+               self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self, failure: { err, _ in
+                  IHError(IHErrors.unexpected, message: "error parsing pricing of cached data, pricing ignored, \(err)")
+               })
             }
          }
          catch {
@@ -303,8 +309,12 @@ import Foundation
     Update user with data
    */
    func update(_ data: [String: Any], _ completion: @escaping (IHError?) -> Void) {
-      let productsForSale = IHUtil.parseItems(data: data["productsForSale"], type: IHProduct.self)
-      let activeProducts = IHUtil.parseItems(data: data["activeProducts"], type: IHActiveProduct.self)
+      let productsForSale = IHUtil.parseItems(data: data["productsForSale"], type: IHProduct.self) { err, _ in
+         IHError(IHErrors.unexpected, message: "error parsing product for sale of api, product ignored, \(err)")
+      }
+      let activeProducts = IHUtil.parseItems(data: data["activeProducts"], type: IHActiveProduct.self) { err, _ in
+         IHError(IHErrors.unexpected, message: "error parsing active product of api, product ignored, \(err)")
+      }
       let products = productsForSale + activeProducts
       let productSkus = Set(products.map({ (product) in product.sku}))
 
