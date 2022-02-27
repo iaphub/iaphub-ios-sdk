@@ -238,6 +238,25 @@ import UIKit
    }
    
    /**
+    Get products (active and for sale)
+    */
+   @objc public class func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?, [IHActiveProduct]?) -> Void) {
+      // Check the sdk is started
+      guard let user = shared.user else {
+         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil, nil)
+      }
+      // Get active products
+      self.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates) { err, activeProducts in
+         // Check if there is an error
+         if (err != nil) {
+            return completion(err, nil, nil)
+         }
+         // Otherwise return the products
+         completion(nil, user.productsForSale, user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
+      }
+   }
+   
+   /**
     Present code redemption
     */
    @objc public class func presentCodeRedemptionSheet(_ completion: @escaping (IHError?) -> Void) {

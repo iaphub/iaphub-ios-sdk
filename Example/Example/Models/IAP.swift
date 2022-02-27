@@ -23,30 +23,17 @@ class IAP: ObservableObject {
    }
    
    func refreshProducts() {
-      self.getProductsForSale()
-      self.getActiveProducts()
-   }
-
-   func getProductsForSale() {
-      Iaphub.getProductsForSale({ (err, products) in
-         if let products = products {
-            self.productsForSale = products
+      Iaphub.getProducts { err, productsForSale, activeProducts in
+         if (productsForSale != nil) {
+            self.productsForSale = productsForSale!
          }
-         else {
-            print("-> productsForSale error: \(err?.localizedDescription)")
+         if (activeProducts != nil) {
+            self.activeProducts = activeProducts!
          }
-      })
-   }
-   
-   func getActiveProducts() {
-      Iaphub.getActiveProducts({ (err, products) in
-         if let products = products {
-            self.activeProducts = products
+         if (err != nil) {
+            print("-> refresh products error: \(err?.localizedDescription)")
          }
-         else {
-            print("-> activeProducts error: \(err?.localizedDescription)")
-         }
-      })
+      }
    }
    
    func openAlert(_ message: String) {
