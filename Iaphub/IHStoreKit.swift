@@ -12,7 +12,7 @@ import StoreKit
 class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    
    var products: [SKProduct] = []
-   var getProductsRequests: [(request: SKProductsRequest, completion: (IHError?, [SKProduct]?) -> Void)] = []
+   var getProductsRequests: [(request: SKProductsRequest, skus: Set<String>, completion: (IHError?, [SKProduct]?) -> Void)] = []
    var buyRequests: [(payment: SKPayment, completion: (IHError?, Any?) -> Void)] = []
    var restoreRequest: ((IHError?) -> Void)? = nil
    var onReceipt: ((IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void)? = nil
@@ -94,7 +94,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    public func getProducts(_ skus: Set<String>, _ completion: @escaping (IHError?, [SKProduct]?) -> Void) {
       let request = SKProductsRequest(productIdentifiers: skus)
 
-      self.getProductsRequests.append((request: request, completion: completion))
+      self.getProductsRequests.append((request: request, skus: skus, completion: completion))
       request.delegate = self
       request.start()
    }
@@ -385,17 +385,27 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     */
    func request(_ request: SKRequest, didFailWithError error: Error) {
       // Look for request
-      let item = self.getProductsRequests.first(where: {$0.request == request})
+      guard let item = self.getProductsRequests.first(where: {$0.request == request}) else {
+         return;
+      }
       // Remove request
-      self.getProductsRequests.removeAll(where: { $0.request ==  item?.request})
-      // Call request callback back to the main thread
-      if (item != nil) {
+      self.getProductsRequests.removeAll(where: { $0.request ==  item.request})
+      // Try to get the products from the cache
+      let cachedProducts = self.products.filter { (product) in item.skus.contains(product.productIdentifier) == true }
+      // Return cached products instead of error if we found all the skus in cache
+      if (cachedProducts.count == item.skus.count) {
+         DispatchQueue.main.async {
+            item.completion(nil, cachedProducts)
+         }
+      }
+      // Otherwise return error
+      else {
          DispatchQueue.main.async {
             if let skError = error as? SKError {
-               item?.completion(IHError(skError), nil)
+               item.completion(IHError(skError), nil)
             }
             else {
-               item?.completion(IHError(error), nil)
+               item.completion(IHError(error), nil)
             }
          }
       }
