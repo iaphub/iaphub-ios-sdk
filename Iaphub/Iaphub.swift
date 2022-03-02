@@ -209,11 +209,19 @@ import UIKit
     */
    @objc public class func restore(_ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
-      guard shared.isStarted == true else {
+      guard let user = shared.user else {
          return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
       }
+      // Check if restore currently processing
+      if (shared.isRestoring) {
+         return completion(IHError(IHErrors.restore_processing))
+      }
       // Launch restore
-      shared.storekit.restore(completion)
+      shared.isRestoring = true
+      user.restore({ (err) in
+         shared.isRestoring = false
+         completion(err)
+      })
    }
 
    /**

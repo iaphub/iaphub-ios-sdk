@@ -568,4 +568,17 @@ import Foundation
       self.needsFetch = true;
    }
    
+   /**
+    Restore
+   */
+   func restore(_ completion: @escaping (IHError?) -> Void) {
+      // Launch restore
+      self.sdk.storekit.restore({ (err) in
+         // Refresh user
+         self.refresh(interval: 0, force: true, { _, _, _ in
+            completion(err)
+         })
+      })
+   }
+   
 }
