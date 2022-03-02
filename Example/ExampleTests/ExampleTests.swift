@@ -182,8 +182,6 @@ class IaphubTests: XCTestCase {
                      "subscriptionState": "active",
                      "subscriptionPeriodType": "normal",
                      "isSubscriptionRenewable": true,
-                     "isSubscriptionRetryPeriod": false,
-                     "isSubscriptionGracePeriod": false,
                      "isSubscriptionPaused": false
                   ]
                ]
@@ -273,8 +271,6 @@ class IaphubTests: XCTestCase {
                      "subscriptionState": "retry_period",
                      "subscriptionPeriodType": "normal",
                      "isSubscriptionRenewable": true,
-                     "isSubscriptionRetryPeriod": true,
-                     "isSubscriptionGracePeriod": false,
                      "isSubscriptionPaused": false
                   ],
                   [
@@ -289,8 +285,6 @@ class IaphubTests: XCTestCase {
                      "subscriptionState": "grace_period",
                      "subscriptionPeriodType": "normal",
                      "isSubscriptionRenewable": true,
-                     "isSubscriptionRetryPeriod": false,
-                     "isSubscriptionGracePeriod": true,
                      "isSubscriptionPaused": false
                   ]
                ]
