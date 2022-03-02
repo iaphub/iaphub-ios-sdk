@@ -13,7 +13,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    
    var products: [SKProduct] = []
    var getProductsRequests: [(request: SKProductsRequest, skus: Set<String>, completion: (IHError?, [SKProduct]?) -> Void)] = []
-   var buyRequests: [(payment: SKPayment, completion: (IHError?, Any?) -> Void)] = []
+   var buyRequest: (payment: SKPayment, completion: (IHError?, Any?) -> Void)? = nil
    var restoreRequest: ((IHError?) -> Void)? = nil
    var onReceipt: ((IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void)? = nil
    var onBuyRequest: ((String) -> Void)? = nil
@@ -107,10 +107,14 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       if (self.canMakePayments() == false) {
          return completion(IHError(IHErrors.billing_unavailable), nil)
       }
+      // Return an error if a buy request is currently processing
+      if (self.buyRequest != nil) {
+         return completion(IHError(IHErrors.buy_processing), nil)
+      }
       // Otherwise process the purchase
       let payment = SKPayment(product: product)
       // Add buy request
-      self.buyRequests.append((payment: payment, completion: completion))
+      self.buyRequest = (payment: payment, completion: completion)
       // Add payment to queue
       SKPaymentQueue.default().add(payment)
    }
@@ -256,15 +260,16 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     Process buy request
     */
    private func processBuyRequest(_ transaction: SKPaymentTransaction, _ err: IHError?, _ response: Any?) {
-      // Find buy request
-      let buyRequest = self.buyRequests.first(where: { $0.payment.productIdentifier == transaction.payment.productIdentifier })
-      // Remove request
-      self.buyRequests.removeAll(where: { $0.payment ==  buyRequest?.payment})
-      // Call request callback back to the main thread
-      DispatchQueue.main.async {
-         // If found call the buy request
-         if (buyRequest != nil) {
-            buyRequest?.completion(err, response)
+      // Check if the product identifier match
+      if (self.buyRequest?.payment.productIdentifier == transaction.payment.productIdentifier) {
+         guard let buyRequest = self.buyRequest else {
+            return
+         }
+         // Remove request
+         self.buyRequest = nil
+         // Call request callback back to the main thread
+         DispatchQueue.main.async {
+            buyRequest.completion(err, response)
          }
       }
    }
@@ -275,8 +280,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    private func processPurchasedTransaction(_ transaction: SKPaymentTransaction, _ date: Date, _ completion: @escaping () -> Void) {
       // Detect receipt context
       var context = "refresh"
-      let buyRequest = self.buyRequests.first(where: { $0.payment.productIdentifier == transaction.payment.productIdentifier })
-      if (buyRequest != nil) {
+      if (self.buyRequest?.payment.productIdentifier == transaction.payment.productIdentifier) {
          context = "purchase"
       }
       // Get receipt token

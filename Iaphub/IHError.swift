@@ -106,6 +106,7 @@ public enum IHErrors : String {
    case code_redemption_unavailable = "Presenting the code redemption is not available (only available on iOS 14+)"
    case user_tags_processing = "The user is currently posting tags, please wait concurrent requests not allowed"
    case restore_processing = "A restore is currently processing"
+   case buy_processing = "A purchase is currently processing"
 
    var code: String {
       get { return String(describing: self) }
