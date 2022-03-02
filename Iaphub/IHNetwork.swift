@@ -60,8 +60,12 @@ class IHNetwork {
          delay: 1,
          task: { (callback) in
             self.sendRequest(type: type, route: route, params: params, timeout: timeout) { (err, data, httpResponse) in
-               // Retry request if the request failed or we received a 5XX status code
-               if (err != nil && (httpResponse?.statusCode ?? 0) >= 500) {
+               // Retry request if the request failed with a network error
+               if (err?.code == "network_error") {
+                  callback(true, err, data)
+               }
+               // Retry request if the request failed with status code >= 500
+               else if ((httpResponse?.statusCode ?? 0) >= 500) {
                   callback(true, err, data)
                }
                // Otherwise do not retry
