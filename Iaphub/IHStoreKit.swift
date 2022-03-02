@@ -102,24 +102,17 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    /**
     Buy product
     */
-   public func buy(_ sku: String, _ completion: @escaping (IHError?, Any?) -> Void) {
+   public func buy(_ product: SKProduct, _ completion: @escaping (IHError?, Any?) -> Void) {
       // Return an error if the user is not allowed to make payments
       if (self.canMakePayments() == false) {
          return completion(IHError(IHErrors.billing_unavailable), nil)
       }
-      // Product product of sku
-      self.getProduct(sku, { (err, product) in
-         // Check product
-         guard let product = product else {
-            return completion(err, nil)
-         }
-         // Otherwise process the purchase
-         let payment = SKPayment(product: product)
-         // Add buy request
-         self.buyRequests.append((payment: payment, completion: completion))
-         // Add payment to queue
-         SKPaymentQueue.default().add(payment)
-      })
+      // Otherwise process the purchase
+      let payment = SKPayment(product: product)
+      // Add buy request
+      self.buyRequests.append((payment: payment, completion: completion))
+      // Add payment to queue
+      SKPaymentQueue.default().add(payment)
    }
 
    /**

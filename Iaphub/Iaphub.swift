@@ -170,20 +170,37 @@ import UIKit
          guard err == nil else {
             return completion(err, nil)
          }
-         // Check cross platform conflicts
-         let conflictedSubscription = user.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
-         if (crossPlatformConflict && conflictedSubscription != nil) {
-            return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
-         }
-         // Launch purchase
-         shared.storekit.buy(sku, { (err, response) in
-            // Check error
-            guard err == nil else {
+         // Get product 
+         shared.storekit.getProduct(sku) { err, product in
+            // Check if there is an error
+            guard let product = product else {
                return completion(err, nil)
             }
-            // Return receipt transaction
-            shared.getReceiptTransaction(response, completion)
-         })
+            // Try to get the product from the products for sale
+            let productForSale = user.productsForSale.first(where: {$0.sku == sku})
+            // Detect if the product has a subscription period (it means it is a subscription)
+            var hasSubscriptionPeriod = false
+            if #available(iOS 11.2, *) {
+               hasSubscriptionPeriod = (product.subscriptionPeriod != nil) ? true : false
+            }
+            // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
+            if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
+               // Check cross platform conflicts
+               let conflictedSubscription = user.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
+               if (crossPlatformConflict && conflictedSubscription != nil) {
+                  return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
+               }
+            }
+            // Launch purchase
+            shared.storekit.buy(product, { (err, response) in
+               // Check error
+               guard err == nil else {
+                  return completion(err, nil)
+               }
+               // Return receipt transaction
+               shared.getReceiptTransaction(response, completion)
+            })
+         }
       })
    }
    
