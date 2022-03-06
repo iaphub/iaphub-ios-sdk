@@ -75,7 +75,7 @@ extension NSDecimalNumber {
    required init(_ data: Dictionary<String, Any>) throws {
       // Checking mandatory properties
       guard let id = data["id"] as? String, let type = data["type"] as? String, let sku = data["sku"] as? String else {
-         throw IHError(IHErrors.unexpected, message: "product parsing from data failed, id: \(data["id"]), type: \(data["type"]), sku: \(data["sku"])");
+         throw IHError(IHErrors.unexpected, IHUnexpectedErrors.product_parsing_failed, params: data);
       }
       // Assign properties
       self.id = id;

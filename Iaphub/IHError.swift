@@ -13,18 +13,21 @@ import StoreKit
    
    @objc public let message: String
    @objc public let code: String
+   @objc public let subcode: String?
    @objc public let params: Dictionary<String, Any>
    var sent: Bool = false
    
    public var errorDescription: String? {
       get {
-         return "\(self.message) (code: \(self.code))"
+         return "\(self.message)"
       }
    }
 
+   @discardableResult
    init(code: String, message: String, params: Dictionary<String, Any> = [:], silent: Bool = false) {
       self.message = message
       self.code = code
+      self.subcode = nil
       self.params = params
       super.init()
       if (silent != true) {
@@ -32,44 +35,50 @@ import StoreKit
       }
    }
    
-   init(_ error: IHErrors, message: String = "", params: Dictionary<String, Any> = [:], silent: Bool = false) {
-      if (message != "") {
-         self.message = error.message + ", " + message;
-      } else {
-         self.message = error.message;
-      }
+   @discardableResult
+   init(_ error: IHErrors, _ suberror: IHErrorProtocol? = nil, message: String? = nil, params: Dictionary<String, Any> = [:], silent: Bool = false) {
+      var fullMessage = error.message
+      
       self.code = error.code
+      self.subcode = suberror?.code
       self.params = params
+      if (suberror != nil) {
+         fullMessage = fullMessage + ", " + (suberror?.message ?? "")
+      }
+      if (message != nil) {
+         fullMessage = fullMessage + ", " + (message ?? "")
+      }
+      self.message = fullMessage
       super.init()
       if (silent != true) {
          self.send()
       }
    }
    
-   init(_ error: SKError, params: Dictionary<String, Any> = [:], silent: Bool = false) {
+   convenience init(_ error: SKError, params: Dictionary<String, Any> = [:], silent: Bool = false) {
+      var err = IHErrors.unexpected
+      var suberr: IHErrorProtocol? = nil
+      var message: String? = nil
+
       switch error.code {
          case .paymentCancelled:
-            self.message = IHErrors.user_cancelled.message;
-            self.code = IHErrors.user_cancelled.code;
+            err = IHErrors.user_cancelled
             break
          case .storeProductNotAvailable:
-            self.message = IHErrors.product_not_available.message;
-            self.code = IHErrors.product_not_available.code;
+            err = IHErrors.product_not_available
             break
          case .cloudServiceNetworkConnectionFailed:
-            self.message = IHErrors.network_error.message;
-            self.code = IHErrors.network_error.code;
+            err = IHErrors.network_error
+            suberr = IHNetworkErrors.storekit_request_failed
             break
          default:
-            self.message = "An unexpected error has happened, StoreKit error: " + error.localizedDescription;
-            self.code = IHErrors.unexpected.code;
+            err = IHErrors.unexpected
+            suberr = IHUnexpectedErrors.storekit
+            message  = error.localizedDescription
             break
       }
-      self.params = params
-      super.init()
-      if (silent != true) {
-         self.send()
-      }
+      
+      self.init(err, suberr, message: message)
    }
 
    convenience init(_ error: Error?) {
@@ -129,7 +138,8 @@ import StoreKit
                "code": self.code
             ]) { (_, new) in new },
             "person": ["id": Iaphub.shared.appId],
-            "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")"
+            "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")",
+            "fingerprint": (self.subcode != nil) ? "\(self.code)_\(self.subcode!)" : "\(self.code)"
          ]
       ], { err in
          // No need to do anything if there is an error
@@ -137,31 +147,14 @@ import StoreKit
    }
 }
 
-public enum IHErrors : String {
-
-   case unexpected = "An unexpected error has happened"
-   case network_error = "The remote server request failed"
-   case billing_unavailable = "The billing is unavailable (An iPhone can be restricted from accessing the Apple App Store)"
-   case anonymous_purchase_not_allowed = "Anonymous purchase are not allowed, identify user using the login method or enable the anonymous purchase option"
-   case user_cancelled = "The purchase has been cancelled by the user"
-   case deferred_payment = "The payment has been deferred (awaiting approval from parental control)"
-   case product_not_available = "The requested product isn't available for purchase"
-   case receipt_failed = "Receipt validation failed, receipt processing will be automatically retried if possible"
-   case receipt_invalid = "Receipt is invalid"
-   case receipt_stale = "Receipt is stale, no purchases still valid were found"
-   case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
-   case product_already_purchased = "Product already purchased, it is already an active product of the user"
-   case transaction_not_found = "Transaction not found, the product sku wasn't in the receipt, the purchase failed"
-   case user_conflict = "The transaction is successful but it belongs to a different user, a restore might be needed"
-   case code_redemption_unavailable = "Presenting the code redemption is not available (only available on iOS 14+)"
-   case user_tags_processing = "The user is currently posting tags, please wait concurrent requests not allowed"
-   case restore_processing = "A restore is currently processing"
-   case buy_processing = "A purchase is currently processing"
-
-   var code: String {
-      get { return String(describing: self) }
+class IHCustomError : IHErrorProtocol {
+   
+   var code: String
+   var message: String
+   
+   init(_ code: String, _ message: String) {
+      self.code = code
+      self.message = message
    }
-   var message: String {
-      get { return self.rawValue }
-   }
+   
 }

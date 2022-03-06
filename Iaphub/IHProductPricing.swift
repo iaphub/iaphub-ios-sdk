@@ -18,7 +18,7 @@ class IHProductPricing: IHParsable {
 
    required init(_ data: Dictionary<String, Any>) throws {
       guard let id = data["id"] as? String, let price = data["price"] as? Double, let currency = data["currency"] as? String else {
-         throw IHError(IHErrors.unexpected, message: "product pricing parsing from data failed");
+         throw IHError(IHErrors.unexpected, IHUnexpectedErrors.pricing_parsing_failed, params: data);
       }
       self.id = id
       self.price = Decimal(price)

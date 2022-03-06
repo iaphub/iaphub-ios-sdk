@@ -66,7 +66,7 @@ import Foundation
       let result = IHUtil.saveToKeychain(key: key, value: id)
       
       if (result == false) {
-         IHError(IHErrors.unexpected, message: "Saving anonymous id to keychain failed")
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.anonymous_id_keychain_save_failed)
       }
       return id
    }
@@ -123,18 +123,18 @@ import Foundation
             if let id = json["id"] as? String, id == self.id {
                self.fetchDate = IHUtil.dateFromIsoString(json["fetchDate"] as? String)
                self.productsForSale = IHUtil.parseItems(data: json["productsForSale"], type: IHProduct.self, failure: { err, _ in
-                  IHError(IHErrors.unexpected, message: "error parsing product for sale of cached data, product ignored, \(err)")
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on product for sale, " + err.localizedDescription, params: ["item": json["productsForSale"]])
                })
                self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self, failure: { err, _ in
-                  IHError(IHErrors.unexpected, message: "error parsing active product of cached data, product ignored, \(err)")
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, " + err.localizedDescription, params: ["item": json["activeProducts"]])
                })
                self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self, failure: { err, _ in
-                  IHError(IHErrors.unexpected, message: "error parsing pricing of cached data, pricing ignored, \(err)")
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, " + err.localizedDescription, params: ["item": json["pricings"]])
                })
             }
          }
          catch {
-            IHError(IHErrors.unexpected, message: "Get user cache data failed, \(error)")
+            IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_json_parsing_failed, message: error.localizedDescription)
          }
       }
    }
@@ -147,7 +147,7 @@ import Foundation
       var data: Data? = nil
 
       if (JSONSerialization.isValidJSONObject(json) == false) {
-         IHError(IHErrors.unexpected, message: "cannot save cache date, not a valid json object")
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_data_json_invalid)
          return
       }
       
@@ -155,7 +155,7 @@ import Foundation
          data = try JSONSerialization.data(withJSONObject: json)
       }
       catch {
-         IHError(IHErrors.unexpected, message: "cannot save cache date, json serialization failed")
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_json_serialization_failed)
          return
       }
       
@@ -164,7 +164,7 @@ import Foundation
       let result = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
       
       if (result == false) {
-         IHError(IHErrors.unexpected, message: "save to keychain failed")
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_keychain_failed)
       }
    }
 
@@ -183,11 +183,11 @@ import Foundation
 
       // Otherwise fetch user
       guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, message: "api not found"), isUpdated)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), isUpdated)
       }
       // Check if the user id is valid
       if (self.isAnonymous() == false && IHUser.isValidId(self.id) == false) {
-         return completion(IHError(IHErrors.unexpected, message: "user id '\(self.id)' invalid"), isUpdated)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))"), isUpdated)
       }
       // Add completion to the requests
       self.fetchRequests.append(completion)
@@ -291,7 +291,7 @@ import Foundation
       }
       // Post pricing
       guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, message: "api not found"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found))
       }
       api.postPricing(["products": pricings.map({ (pricing) in pricing.getDictionary()})], {(err) in
          // Check error
@@ -310,10 +310,10 @@ import Foundation
    */
    func update(_ data: [String: Any], _ completion: @escaping (IHError?) -> Void) {
       let productsForSale = IHUtil.parseItems(data: data["productsForSale"], type: IHProduct.self) { err, _ in
-         IHError(IHErrors.unexpected, message: "error parsing product for sale of api, product ignored, \(err)")
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "product for sale, " + err.localizedDescription, params: ["item": data["productsForSale"]])
       }
       let activeProducts = IHUtil.parseItems(data: data["activeProducts"], type: IHActiveProduct.self) { err, _ in
-         IHError(IHErrors.unexpected, message: "error parsing active product of api, product ignored, \(err)")
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "active product, " + err.localizedDescription, params: ["item": data["activeProducts"]])
       }
       let products = productsForSale + activeProducts
       let productSkus = Set(products.map({ (product) in product.sku}))
@@ -337,7 +337,7 @@ import Foundation
          // Filter products for sale with no skProduct
          self.productsForSale = productsForSale.filter({ (product) in
             if (product.skProduct == nil) {
-               IHError(IHErrors.unexpected, message: "Itunes did not return the product '\(product.sku)', the product has been filtered, if the sku is valid your Itunes account or sandbox environment is probably not configured properly (https://iaphub.com/docs/set-up-ios/configure-sandbox-testing)")
+               IHError(IHErrors.unexpected, IHUnexpectedErrors.product_missing_from_store, message: "(sku: \(product.sku)")
             }
             return product.skProduct != nil
          })
@@ -454,7 +454,7 @@ import Foundation
    */
    func setTags(_ tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
       guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, message: "api not found"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "set tags failed"))
       }
       if (self.isPostingTags == true) {
          return completion(IHError(IHErrors.user_tags_processing))
@@ -492,7 +492,7 @@ import Foundation
    func login(_ userId: String, _ completion: @escaping (IHError?) -> Void) {
       // Check that id is valid
       if (!IHUser.isValidId(userId)) {
-         return completion(IHError(IHErrors.unexpected, message: "user id invalid"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "login failed"))
       }
       // Check that the id isn't the same
       if (self.id == userId) {
@@ -507,7 +507,7 @@ import Foundation
       // Call API if necessary
       if (shouldCallApi) {
          guard let api = self.api else {
-            return completion(IHError(IHErrors.unexpected, message: "api not found"))
+            return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "login failed"))
          }
          api.login(userId, { (err) in
             // Check for error
@@ -547,12 +547,12 @@ import Foundation
    */
    func postReceipt(_ receipt: IHReceipt, _ completion: @escaping (IHError?, IHReceiptResponse?) -> Void) {
       guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, message: "api not found"), nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "post receipt failed"), nil)
       }
       api.postReceipt(receipt.getDictionary(), { (err, data) in
          // Check for error
          guard err == nil, let data = data else {
-            return completion(err ?? IHError(IHErrors.unexpected, message: "post receipt did not return any data"), nil)
+            return completion(err ?? IHError(IHErrors.unexpected, IHUnexpectedErrors.post_receipt_data_missing), nil)
          }
          // Update receipt post date
          self.receiptPostDate = Date()

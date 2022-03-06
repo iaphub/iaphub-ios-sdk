@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		9642DA97252BA38D00FB614E /* IHReceiptTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9642DA96252BA38D00FB614E /* IHReceiptTransaction.swift */; };
 		964E862726A8413B00C3BEBA /* IHConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964E862626A8413B00C3BEBA /* IHConfig.swift */; };
+		9653128127D578F100BE1D46 /* IHErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9653128027D578F100BE1D46 /* IHErrors.swift */; };
 		96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CBD49C271F5F0900B9ECCB /* IHParsable.swift */; };
 		96CFA0A624F82B1900793E42 /* IHUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A524F82B1900793E42 /* IHUser.swift */; };
 		96CFA0A824F82BAA00793E42 /* IHProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A724F82BAA00793E42 /* IHProduct.swift */; };
@@ -28,6 +29,7 @@
 /* Begin PBXFileReference section */
 		9642DA96252BA38D00FB614E /* IHReceiptTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHReceiptTransaction.swift; sourceTree = "<group>"; };
 		964E862626A8413B00C3BEBA /* IHConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHConfig.swift; sourceTree = "<group>"; };
+		9653128027D578F100BE1D46 /* IHErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHErrors.swift; sourceTree = "<group>"; };
 		96CBD49C271F5F0900B9ECCB /* IHParsable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHParsable.swift; sourceTree = "<group>"; };
 		96CFA0A524F82B1900793E42 /* IHUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHUser.swift; sourceTree = "<group>"; };
 		96CFA0A724F82BAA00793E42 /* IHProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProduct.swift; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 				96DFDDB72527BB4B00A0795A /* IHReceiptResponse.swift */,
 				9642DA96252BA38D00FB614E /* IHReceiptTransaction.swift */,
 				96CFA0B124F89AC000793E42 /* IHError.swift */,
+				9653128027D578F100BE1D46 /* IHErrors.swift */,
 				96CFA0A524F82B1900793E42 /* IHUser.swift */,
 				96FD8CBF24DDA4CF00122612 /* IHAPI.swift */,
 				96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */,
@@ -178,6 +181,7 @@
 				9642DA97252BA38D00FB614E /* IHReceiptTransaction.swift in Sources */,
 				964E862726A8413B00C3BEBA /* IHConfig.swift in Sources */,
 				96CFA0A624F82B1900793E42 /* IHUser.swift in Sources */,
+				9653128127D578F100BE1D46 /* IHErrors.swift in Sources */,
 				96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */,
 				96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */,
 				96CFA0B424FBF3B200793E42 /* IHStoreKit.swift in Sources */,

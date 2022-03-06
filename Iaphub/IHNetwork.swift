@@ -95,7 +95,7 @@ class IHNetwork {
    private func createGetRequest(url: URL, params: Dictionary<String, Any>) throws -> URLRequest {
       // Create url params
       guard var urlParams = params as? [String: String] else {
-         throw IHError(IHErrors.network_error, message: "get url params invalid")
+         throw IHError(IHErrors.network_error, IHNetworkErrors.url_params_invalid)
       }
       for key in self.params.keys {
          urlParams[key] = self.params[key]
@@ -108,7 +108,7 @@ class IHNetwork {
       components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
       // Check if the url is correct
       guard let url = components.url else {
-         throw IHError(IHErrors.network_error, message: "get url invalid")
+         throw IHError(IHErrors.network_error, IHNetworkErrors.url_invalid)
       }
       // Create request
       var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 20.0)
@@ -151,7 +151,7 @@ class IHNetwork {
       do {
          // Create url
          guard let url = URL(string: self.endpoint + route) else {
-            return completion(IHError(IHErrors.network_error, message: "url invalid", params: infos, silent: true), nil, nil)
+            return completion(IHError(IHErrors.network_error, IHNetworkErrors.url_invalid, params: infos, silent: true), nil, nil)
          }
          // Create request
          let request = try (type == "GET") ? self.createGetRequest(url: url, params: params) : self.createPostRequest(url: url, params: params)
@@ -163,38 +163,38 @@ class IHNetwork {
          let task = session.dataTask(with: request) { (data, response, error) in
             // Check for any errors
             guard error == nil else {
-               return completion(IHError(IHErrors.network_error, message: "request failed", params: infos, silent: true), nil, nil)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.request_failed, params: infos, silent: true), nil, nil)
             }
             // Get http response
             guard let httpResponse = response as? HTTPURLResponse else {
-               return completion(IHError(IHErrors.network_error, message: "http response invalid", params: infos, silent: true), nil, nil)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), nil, nil)
             }
             // Add status code to infos
             infos["statusCode"] = "\(httpResponse.statusCode)"
             // Check we have a response
             guard let data = data else {
-               return completion(IHError(IHErrors.network_error, message: "response empty", params: infos, silent: true), nil, httpResponse)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_empty, params: infos, silent: true), nil, httpResponse)
             }
             // Process the response
             do {
                // Parse JSON
                guard let responseData = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-                  return completion(IHError(IHErrors.network_error, message: "response parsing failed", params: infos, silent: true), nil, httpResponse)
+                  return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_parsing_failed, params: infos, silent: true), nil, httpResponse)
                }
                // Check if the response returned an error
                if let error = responseData["error"] as? String {
-                  return completion(IHError(code: error, message: "server returned an error (code: \(error))", params: infos, silent: true), nil, httpResponse)
+                  return completion(IHError(IHErrors.server_error, IHCustomError(error, "code: \(error)"), params: infos, silent: true), nil, httpResponse)
                }
                // Otherwise the request is successful, return the data
                return completion(nil, responseData, httpResponse)
             } catch  {
-               return completion(IHError(IHErrors.network_error, message: "response invalid", params: infos, silent: true), nil, httpResponse)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), nil, httpResponse)
             }
          }
          // Launch task
          task.resume();
       } catch {
-         return completion((error as? IHError) ?? IHError(IHErrors.network_error, message: "unknown exception", params: infos, silent: true), nil, nil)
+         return completion((error as? IHError) ?? IHError(IHErrors.network_error, IHNetworkErrors.unknown_exception, params: infos, silent: true), nil, nil)
       }
     }
     

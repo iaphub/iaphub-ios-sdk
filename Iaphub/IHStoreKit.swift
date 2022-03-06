@@ -287,7 +287,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       let receiptToken = self.getReceiptToken()
       // Check receipt token is not nil
       guard let token = receiptToken else {
-         self.processBuyRequest(transaction, IHError(IHErrors.unexpected, message: "Impossible to get receipt token"), nil)
+         self.processBuyRequest(transaction, IHError(IHErrors.unexpected, IHUnexpectedErrors.get_receipt_token_failed, message: "from purchased transaction"), nil)
          return completion()
       }
       // Create receipt
@@ -504,7 +504,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       let receiptToken = self.getReceiptToken()
       // Check receipt token is not nil
       guard let token = receiptToken else {
-         return restoreRequest(IHError(IHErrors.unexpected, message: "receipt not found"))
+         return restoreRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.get_receipt_token_failed, message: "from restored transaction"))
       }
       // Create receipt object
       let receipt = IHReceipt(token: token, sku: "", context: "restore")

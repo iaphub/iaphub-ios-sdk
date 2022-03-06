@@ -113,7 +113,7 @@ import UIKit
     */
    @objc public class func login(userId: String, _ completion: @escaping (IHError?) -> Void) {
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "login failed"))
       }
       // Log in user
       user.login(userId, completion);
@@ -148,7 +148,7 @@ import UIKit
    @objc public class func setUserTags(tags: Dictionary<String, String>, _ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "setUserTags failed"))
       }
       // Set tags
       user.setTags(tags, completion)
@@ -160,7 +160,7 @@ import UIKit
    @objc public class func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "buy failed"), nil)
       }
       // Check if anonymous purchases are allowed
       if (user.isAnonymous() && shared.allowAnonymousPurchase == false) {
@@ -212,7 +212,7 @@ import UIKit
    @objc public class func restore(_ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "restore failed"))
       }
       // Check if restore currently processing
       if (shared.isRestoring) {
@@ -232,7 +232,7 @@ import UIKit
    @objc public class func getActiveProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHActiveProduct]?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getActiveProducts failed"), nil)
       }
       // Refresh user
       shared.refreshUser({ (err, isFetched, isUpdated) in
@@ -251,7 +251,7 @@ import UIKit
    @objc public class func getProductsForSale(_ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProductsForSale failed"), nil)
       }
       // Refresh user with an interval of 24 hours
       shared.refreshUser(interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
@@ -270,7 +270,7 @@ import UIKit
    @objc public class func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?, [IHActiveProduct]?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"), nil, nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProducts failed"), nil, nil)
       }
       // Get active products
       self.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates) { err, activeProducts in
@@ -289,7 +289,7 @@ import UIKit
    @objc public class func presentCodeRedemptionSheet(_ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, message: "IAPHUB not started"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "presentCodeRedemptionSheet failed"))
       }
       // Check if anonymous purchases are allowed
       if (user.isAnonymous() && shared.allowAnonymousPurchase == false) {
@@ -327,7 +327,7 @@ import UIKit
    private func refreshUser(interval: Double = 0, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
       // Check the sdk is started
       guard let user = self.user else {
-         completion?(IHError(IHErrors.unexpected, message: "IAPHUB not started"), false, false)
+         completion?(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "refreshUser failed"), false, false)
          return
       }
       // Refresh callback function
@@ -359,11 +359,11 @@ import UIKit
    private func getReceiptTransaction(_ response: Any?, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
       // Check response
       guard let response = response else {
-         return completion(IHError(IHErrors.unexpected, message: "no response"), nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_response_empty), nil)
       }
       // Check the cast is a success
       guard let receiptTransaction = response as? IHReceiptTransaction else {
-         return completion(IHError(IHErrors.unexpected, message: "receipt transaction found"), nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transaction_not_found), nil)
       }
       // Look for the product of the receipt transaction
       self.storekit.getProduct(receiptTransaction.sku, {(err, skProduct) in
@@ -420,7 +420,7 @@ import UIKit
                      }
                      // Check any other status different than success
                      else if (receiptResponse.status != "success") {
-                        error = IHError(IHErrors.unexpected, message: "Receipt validation failed")
+                        error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_failed)
                         shouldFinishReceipt = false
                      }
                      // Get transaction if we're in a purchase context
