@@ -31,9 +31,11 @@ import UIKit
 
    var sdk: String = IHConfig.sdk
    var sdkVersion: String = IHConfig.sdkVersion
+   var osVersion: String = UIDevice.current.systemVersion
    var isStarted = false
    var isRestoring = false
    var deviceParams: Dictionary<String, String> = [:]
+   var logs = true
    
    @objc public static weak var delegate: IaphubDelegate?
 

@@ -51,6 +51,7 @@ class IaphubTests: XCTestCase {
          appId: "61718bfd9bf07f0c7d2357d1",
          apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3"
       )
+      Iaphub.shared.logs = false
    }
 
    func test01_getProductsForSale() async throws {

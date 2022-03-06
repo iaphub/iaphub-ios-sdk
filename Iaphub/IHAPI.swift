@@ -23,7 +23,7 @@ class IHAPI {
          "platform": "ios",
          "sdk": self.user.sdk.sdk,
          "sdkVersion": self.user.sdk.sdkVersion,
-         "osVersion": UIDevice.current.systemVersion
+         "osVersion": self.user.sdk.osVersion
       ])
    }
    
@@ -91,6 +91,19 @@ class IHAPI {
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/pricing",
          params: pricing
+      )  {(err, data) -> Void in
+         completion(err);
+      }
+   }
+   
+   /**
+    Post log
+   */
+   public func postLog(_ params: Dictionary<String, Any>, _ completion: @escaping (IHError?) -> Void) {
+      self.network.send(
+         type: "POST",
+         route: "/app/\(self.user.sdk.appId)/log",
+         params: params
       )  {(err, data) -> Void in
          completion(err);
       }
