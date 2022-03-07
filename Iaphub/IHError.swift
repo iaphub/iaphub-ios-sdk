@@ -22,18 +22,6 @@ import StoreKit
          return "\(self.message)"
       }
    }
-
-   @discardableResult
-   init(code: String, message: String, params: Dictionary<String, Any> = [:], silent: Bool = false) {
-      self.message = message
-      self.code = code
-      self.subcode = nil
-      self.params = params
-      super.init()
-      if (silent != true) {
-         self.send()
-      }
-   }
    
    @discardableResult
    init(_ error: IHErrors, _ suberror: IHErrorProtocol? = nil, message: String? = nil, params: Dictionary<String, Any> = [:], silent: Bool = false) {
