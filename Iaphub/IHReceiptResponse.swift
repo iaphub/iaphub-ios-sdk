@@ -19,26 +19,12 @@ class IHReceiptResponse {
 
    init(_ data: Dictionary<String, Any>) {
       self.status = data["status"] as? String
-      self.newTransactions = self.parseTransactions(data["newTransactions"])
-      self.oldTransactions = self.parseTransactions(data["oldTransactions"])
-   }
-   
-   /**
-    Parse transactions
-   */
-   private func parseTransactions(_ data: Any?) -> [IHReceiptTransaction] {
-      let transactionsDictionary = (data as? [Dictionary<String, Any>]) ?? [Dictionary<String, Any>]()
-      var transactions = [IHReceiptTransaction]()
-
-      for item in transactionsDictionary {
-         do {
-            let transaction = try IHReceiptTransaction(item)
-            transactions.append(transaction)
-         } catch {
-            // If the product cannot be parsed, ignore it
-         }
-      }
-      return transactions
+      self.newTransactions = IHUtil.parseItems(data: data["newTransactions"], type: IHReceiptTransaction.self, failure: { err, _ in
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transation_parsing_failed, message: "new transaction, err: \(err.localizedDescription)")
+      })
+      self.oldTransactions = IHUtil.parseItems(data: data["oldTransactions"], type: IHReceiptTransaction.self, failure: { err, _ in
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transation_parsing_failed, message: "old transaction, err: \(err.localizedDescription)")
+      })
    }
 
 }

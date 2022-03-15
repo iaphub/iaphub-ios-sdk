@@ -420,7 +420,7 @@ import UIKit
                      }
                      // Check any other status different than success
                      else if (receiptResponse.status != "success") {
-                        error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_failed)
+                        error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_response_invalid, message: "status: \(receiptResponse.status ?? "nil")")
                         shouldFinishReceipt = false
                      }
                      // Get transaction if we're in a purchase context

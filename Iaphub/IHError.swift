@@ -123,11 +123,12 @@ import StoreKit
             "custom": self.params.merging([
                "osVersion": Iaphub.shared.osVersion,
                "sdkVersion": Iaphub.shared.sdkVersion,
-               "code": self.code
+               "code": self.code,
+               "subcode": self.subcode ?? ""
             ]) { (_, new) in new },
             "person": ["id": Iaphub.shared.appId],
             "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")",
-            "fingerprint": (self.subcode != nil) ? "\(self.code)_\(self.subcode!)" : "\(self.code)"
+            "fingerprint": "\(IHConfig.sdk)_\(self.code)_\(self.subcode ?? "")"
          ]
       ], { err in
          // No need to do anything if there is an error
