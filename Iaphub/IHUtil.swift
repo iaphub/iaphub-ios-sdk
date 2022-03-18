@@ -158,11 +158,16 @@ class IHUtil {
    /**
     Parse items
    */
-   static func parseItems<T: IHParsable>(data: Any?, type: T.Type, failure: @escaping (Error, Dictionary<String, Any>) -> Void) -> [T] {
-      let itemsDictionary = (data as? [Dictionary<String, Any>]) ?? [Dictionary<String, Any>]()
+   static func parseItems<T: IHParsable>(data: Any?, type: T.Type, failure: @escaping (Error, Dictionary<String, Any>?) -> Void) -> [T] {
       var items = [T]()
+      let dic = (data as? [Dictionary<String, Any>])
+      
+      guard let itemsDic = dic else {
+         failure(IHError(IHErrors.unexpected, nil, message: "cast to array failed", silent: true), nil)
+         return items
+      }
 
-      for item in itemsDictionary {
+      for item in itemsDic {
          do {
             let item = try type.init(item)
             items.append(item)

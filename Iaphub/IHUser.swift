@@ -123,13 +123,13 @@ import Foundation
             if let id = json["id"] as? String, id == self.id {
                self.fetchDate = IHUtil.dateFromIsoString(json["fetchDate"] as? String)
                self.productsForSale = IHUtil.parseItems(data: json["productsForSale"], type: IHProduct.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on product for sale, " + err.localizedDescription, params: ["item": item])
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on product for sale, " + err.localizedDescription, params: ["item": item as Any])
                })
                self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, " + err.localizedDescription, params: ["item": item])
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, " + err.localizedDescription, params: ["item": item as Any])
                })
                self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, " + err.localizedDescription, params: ["item": item])
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, " + err.localizedDescription, params: ["item": item as Any])
                })
             }
          }
@@ -310,10 +310,10 @@ import Foundation
    */
    func update(_ data: [String: Any], _ completion: @escaping (IHError?) -> Void) {
       let productsForSale = IHUtil.parseItems(data: data["productsForSale"], type: IHProduct.self) { err, item in
-         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "product for sale, " + err.localizedDescription, params: ["item": item])
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "product for sale, " + err.localizedDescription, params: ["item": item as Any])
       }
       let activeProducts = IHUtil.parseItems(data: data["activeProducts"], type: IHActiveProduct.self) { err, item in
-         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "active product, " + err.localizedDescription, params: ["item": item])
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "active product, " + err.localizedDescription, params: ["item": item as Any])
       }
       let products = productsForSale + activeProducts
       let productSkus = Set(products.map({ (product) in product.sku}))
