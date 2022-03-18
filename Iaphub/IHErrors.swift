@@ -68,8 +68,6 @@ enum IHUnexpectedErrors : String, IHErrorProtocol {
 
    case storekit = "an unexpected storekit error has happened"
    case start_missing = "iaphub not started"
-   case receipt_response_empty = "receipt response empty"
-   case receipt_transaction_not_found = "receipt transaction not found"
    case receipt_validation_response_invalid = "receipt validation failed, response invalid"
    case product_parsing_failed = "product parsing from data failed"
    case pricing_parsing_failed = "pricing parsing from data failed"

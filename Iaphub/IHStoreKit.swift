@@ -13,9 +13,9 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    
    var products: [SKProduct] = []
    var getProductsRequests: [(request: SKProductsRequest, skus: Set<String>, completion: (IHError?, [SKProduct]?) -> Void)] = []
-   var buyRequest: (payment: SKPayment, completion: (IHError?, Any?) -> Void)? = nil
+   var buyRequest: (payment: SKPayment, completion: (IHError?, IHReceiptTransaction?) -> Void)? = nil
    var restoreRequest: ((IHError?) -> Void)? = nil
-   var onReceipt: ((IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void)? = nil
+   var onReceipt: ((IHReceipt, @escaping ((IHError?, Bool, IHReceiptTransaction?) -> Void)) -> Void)? = nil
    var onBuyRequest: ((String) -> Void)? = nil
    var purchasedTransactionQueue: IHQueue? = nil
    var failedTransactionQueue: IHQueue? = nil
@@ -29,7 +29,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     Start IAP
     */
    public func start(
-      onReceipt: @escaping (IHReceipt, @escaping ((IHError?, Bool, Any?) -> Void)) -> Void,
+      onReceipt: @escaping (IHReceipt, @escaping ((IHError?, Bool, IHReceiptTransaction?) -> Void)) -> Void,
       onBuyRequest: @escaping (String) -> Void
    ) {
       // Create purchased transaction queue
@@ -102,7 +102,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    /**
     Buy product
     */
-   public func buy(_ product: SKProduct, _ completion: @escaping (IHError?, Any?) -> Void) {
+   public func buy(_ product: SKProduct, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
       // Return an error if the user is not allowed to make payments
       if (self.canMakePayments() == false) {
          return completion(IHError(IHErrors.billing_unavailable), nil)
@@ -259,7 +259,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    /**
     Process buy request
     */
-   private func processBuyRequest(_ transaction: SKPaymentTransaction, _ err: IHError?, _ response: Any?) {
+   private func processBuyRequest(_ transaction: SKPaymentTransaction, _ err: IHError?, _ response: IHReceiptTransaction?) {
       // Check if the product identifier match
       if (self.buyRequest?.payment.productIdentifier == transaction.payment.productIdentifier) {
          guard let buyRequest = self.buyRequest else {

@@ -194,13 +194,24 @@ import UIKit
                }
             }
             // Launch purchase
-            shared.storekit.buy(product, { (err, response) in
+            shared.storekit.buy(product, { (err, transaction) in
                // Check error
                guard err == nil else {
                   return completion(err, nil)
                }
-               // Return receipt transaction
-               shared.getReceiptTransaction(response, completion)
+               // Check transaction
+               guard let transaction = transaction else {
+                  return completion(IHError(IHErrors.unexpected, message: "receipt transaction empty"), nil)
+               }
+               // Look for the product of the receipt transaction
+               shared.storekit.getProduct(transaction.sku, {(err, skProduct) in
+                  // Assign the skProduct of the transaction
+                  if (skProduct != nil) {
+                     transaction.setSKProduct(skProduct!)
+                  }
+                  // Call completion
+                  completion(nil, transaction)
+               })
             })
          }
       })
@@ -351,29 +362,6 @@ import UIKit
       else {
          user.refresh(callback)
       }
-   }
-
-   /**
-    Get receipt transaction
-    */
-   private func getReceiptTransaction(_ response: Any?, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
-      // Check response
-      guard let response = response else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_response_empty), nil)
-      }
-      // Check the cast is a success
-      guard let receiptTransaction = response as? IHReceiptTransaction else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transaction_not_found), nil)
-      }
-      // Look for the product of the receipt transaction
-      self.storekit.getProduct(receiptTransaction.sku, {(err, skProduct) in
-         // Assign the skProduct of the transaction
-         if (skProduct != nil) {
-            receiptTransaction.setSKProduct(skProduct!)
-         }
-         // Call completion
-         completion(nil, receiptTransaction)
-      })
    }
    
    /**
