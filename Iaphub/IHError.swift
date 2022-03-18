@@ -126,6 +126,10 @@ class IHLocalizedError: LocalizedError {
       if (Iaphub.shared.logs == false) {
          return
       }
+      // Check rate limit
+      if (!IHLogLimit.isAllowed()) {
+         return
+      }
       // Send request
       Iaphub.shared.user?.api?.postLog([
          "data": [
