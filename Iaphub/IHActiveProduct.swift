@@ -33,9 +33,23 @@ import StoreKit
    required init(_ data: Dictionary<String, Any>) throws {
       try super.init(data)
       self.purchase = data["purchase"] as? String
-      self.purchaseDate = IHUtil.dateFromIsoString(data["purchaseDate"] as? String)
+      self.purchaseDate = IHUtil.dateFromIsoString(data["purchaseDate"], failure: { err in
+         IHError(
+            IHErrors.unexpected,
+            IHUnexpectedErrors.date_parsing_failed,
+            message: "issue on active product purchase date, \(err.localizedDescription)",
+            params: ["purchaseDate": data["purchaseDate"] as Any, "purchase": self.purchase as Any]
+         )
+      })
       self.platform = data["platform"] as? String
-      self.expirationDate = IHUtil.dateFromIsoString(data["expirationDate"] as? String)
+      self.expirationDate = IHUtil.dateFromIsoString(data["expirationDate"], failure: { err in
+         IHError(
+            IHErrors.unexpected,
+            IHUnexpectedErrors.date_parsing_failed,
+            message: "issue on active product expiration date, \(err.localizedDescription)",
+            params: ["expirationDate": data["expirationDate"] as Any, "purchase": self.purchase as Any]
+         )
+      })
       self.isSubscriptionRenewable = (data["isSubscriptionRenewable"] as? Bool) ?? false
       self.subscriptionRenewalProduct = data["subscriptionRenewalProduct"] as? String
       self.subscriptionRenewalProductSku = data["subscriptionRenewalProductSku"] as? String

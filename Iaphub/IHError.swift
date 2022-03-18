@@ -9,6 +9,22 @@
 import Foundation
 import StoreKit
 
+class IHLocalizedError: LocalizedError {
+   
+   let message: String
+   
+   init(_ message: String) {
+      self.message = message
+   }
+   
+   public var errorDescription: String? {
+      get {
+         return "\(self.message)"
+      }
+   }
+   
+}
+
 @objc public class IHError: NSObject, LocalizedError {
    
    @objc public let message: String

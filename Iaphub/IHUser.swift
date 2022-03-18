@@ -121,15 +121,17 @@ import Foundation
                return
             }
             if let id = json["id"] as? String, id == self.id {
-               self.fetchDate = IHUtil.dateFromIsoString(json["fetchDate"] as? String)
+               self.fetchDate = IHUtil.dateFromIsoString(json["fetchDate"], failure: { err in
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.date_parsing_failed, message: "issue on fetch date, \(err.localizedDescription)", params: ["fetchDate": json["fetchDate"] as Any])
+               })
                self.productsForSale = IHUtil.parseItems(data: json["productsForSale"], type: IHProduct.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on product for sale, " + err.localizedDescription, params: ["item": item as Any])
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on product for sale, \(err.localizedDescription)", params: ["item": item as Any])
                })
                self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, " + err.localizedDescription, params: ["item": item as Any])
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, \(err.localizedDescription)", params: ["item": item as Any])
                })
                self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, " + err.localizedDescription, params: ["item": item as Any])
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, \(err.localizedDescription)", params: ["item": item as Any])
                })
             }
          }

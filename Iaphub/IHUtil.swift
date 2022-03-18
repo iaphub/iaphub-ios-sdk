@@ -181,8 +181,19 @@ class IHUtil {
    /**
     Convert ISO string to date
    */
-   static func dateFromIsoString(_ str: String?) -> Date? {
-      guard let str = str else {
+   static func dateFromIsoString(_ str: Any?, failure: ((Error) -> Void)? = nil) -> Date? {
+      if (str == nil) {
+         return nil
+      }
+      
+      let strDate = str as? String
+      
+      if (strDate == nil) {
+         failure?(IHLocalizedError("date cast to string failed"))
+         return nil
+      }
+      
+      guard let strDate = strDate else {
          return nil
       }
       
@@ -193,7 +204,14 @@ class IHUtil {
       formatter.timeZone = TimeZone(secondsFromGMT: 0)
       formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
       
-      return formatter.date(from: str)
+      let date = formatter.date(from: strDate)
+      
+      if (date == nil) {
+         failure?(IHLocalizedError("date formatter failed"))
+         return nil
+      }
+      
+      return date
    }
    
    /**
