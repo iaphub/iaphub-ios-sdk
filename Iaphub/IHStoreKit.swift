@@ -178,7 +178,8 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     */
    public func presentCodeRedemptionSheet(_ completion: @escaping (IHError?) -> Void) {
       if #available(iOS 14.0, *) {
-          SKPaymentQueue.default().presentCodeRedemptionSheet()
+         SKPaymentQueue.default().presentCodeRedemptionSheet()
+         completion(nil)
       } else {
          return completion(IHError(IHErrors.code_redemption_unavailable))
       }
