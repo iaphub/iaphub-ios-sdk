@@ -16,6 +16,6 @@ class IHConfig {
    
    static var sdk = "ios"
    
-   static var sdkVersion = "2.0.0"
+   static var sdkVersion = "2.0.1"
    
 }
