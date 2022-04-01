@@ -20,4 +20,15 @@ import Foundation
       self.webhookStatus = data["webhookStatus"] as? String
       self.user = data["user"] as? String
    }
+   
+   override func getDictionary() -> [String: Any] {
+      var data = super.getDictionary()
+      let extraData = [
+         "webhookStatus": self.webhookStatus as Any,
+         "user": self.user as Any
+      ]
+
+      data.merge(extraData) { (current, _) in current }
+      return data
+   }
 }
