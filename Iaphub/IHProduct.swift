@@ -98,7 +98,7 @@ extension NSDecimalNumber {
       self.subscriptionTrialDuration = data["subscriptionTrialDuration"] as? String
    }
    
-   func getDictionary() -> [String: Any] {
+   public func getDictionary() -> [String: Any] {
       return [
          "id": self.id,
          "type": self.type,

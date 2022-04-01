@@ -21,7 +21,7 @@ import Foundation
       self.user = data["user"] as? String
    }
    
-   override func getDictionary() -> [String: Any] {
+   override public func getDictionary() -> [String: Any] {
       var data = super.getDictionary()
       let extraData = [
          "webhookStatus": self.webhookStatus as Any,
