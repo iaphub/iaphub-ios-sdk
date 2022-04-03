@@ -126,6 +126,10 @@ class IHLocalizedError: LocalizedError {
       if (Iaphub.shared.logs == false) {
          return
       }
+      // Ignore some errors
+      if (["user_cancelled"].contains(self.code)) {
+         return
+      }
       // Check rate limit
       if (!IHLogLimit.isAllowed()) {
          return
