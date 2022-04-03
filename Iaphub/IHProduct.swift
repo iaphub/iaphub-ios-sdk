@@ -54,9 +54,9 @@ extension NSDecimalNumber {
    // Duration of the subscription cycle specified in the ISO 8601 format
    @objc public var subscriptionDuration: String?
    
-   // Localized introductory price
-   @objc public var subscriptionIntroPrice: Decimal = 0
    // Introductory price amount
+   @objc public var subscriptionIntroPrice: Decimal = 0
+   // Localized introductory price
    @objc public var subscriptionIntroLocalizedPrice: String?
    // Payment type of the introductory offer
    @objc public var subscriptionIntroPayment: String? // ("as_you_go", "upfront")

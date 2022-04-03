@@ -16,11 +16,11 @@ import StoreKit
    // Purchase date
    @objc public var purchaseDate: Date?
    
-   // Subscription platform
+   // Platform of the purchase
    @objc public var platform: String?
    // Subscription expiration date
    @objc public var expirationDate: Date?
-   // If the subscription will auto renew
+   // Returns if the subscription will auto renew
    @objc public var isSubscriptionRenewable: Bool = false
    // Subscription product of the next renewal (only defined if different than the current product)
    @objc public var subscriptionRenewalProduct: String?
