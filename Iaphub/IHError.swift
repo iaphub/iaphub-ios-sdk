@@ -158,6 +158,16 @@ class IHLocalizedError: LocalizedError {
          // No need to do anything if there is an error
       })
    }
+   
+   public func getDictionary() -> [String: Any?] {
+      return [
+         "code": self.code,
+         "subcode": self.subcode,
+         "message": self.message,
+         "params": self.params
+      ]
+   }
+   
 }
 
 class IHCustomError : IHErrorProtocol {
