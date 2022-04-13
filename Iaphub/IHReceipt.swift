@@ -30,7 +30,7 @@ import StoreKit
       self.isFinished = false
    }
 
-   func getDictionary() -> [String: Any] {
+   public func getDictionary() -> [String: Any] {
       return [
          "token": self.token,
          "sku": self.sku,
