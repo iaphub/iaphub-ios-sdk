@@ -426,20 +426,20 @@ import UIKit
                            if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
                               // Check if the transaction belongs to a different user
                               if (oldTransaction?.user != nil && user.iaphubId != nil && oldTransaction?.user != user.iaphubId) {
-                                 error = IHError(IHErrors.user_conflict)
+                                 error = IHError(IHErrors.user_conflict, params: ["loggedUser": user.iaphubId as Any, "transactionUser": oldTransaction?.user as Any])
                               }
                               else {
-                                 error = IHError(IHErrors.product_already_purchased)
+                                 error = IHError(IHErrors.product_already_purchased, params: ["sku": receipt.sku])
                               }
                            }
                            // Otherwise it means the product sku wasn't in the receipt
                            else {
-                              error = IHError(IHErrors.transaction_not_found)
+                              error = IHError(IHErrors.transaction_not_found, params: ["sku": receipt.sku])
                            }
                         }
                         // If we have a transaction check that it belongs to the same user
                         else if (transaction?.user != nil && user.iaphubId != nil && transaction?.user != user.iaphubId) {
-                           error = IHError(IHErrors.user_conflict)
+                           error = IHError(IHErrors.user_conflict, params: ["loggedUser": user.iaphubId as Any, "transactionUser": transaction?.user as Any])
                         }
                      }
                      // Call finish
