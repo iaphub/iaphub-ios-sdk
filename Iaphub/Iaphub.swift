@@ -391,7 +391,7 @@ import UIKit
                // Check receipt response
                if error == nil, let receiptResponse = receiptResponse {
                   // Refresh user in case the user id has been updated
-                  user.refresh({ (_, _, _) in
+                  self.refreshUser({ (_, _, _) in
                      // Finish receipt
                      shouldFinishReceipt = true
                      // Check if the receipt is invalid
