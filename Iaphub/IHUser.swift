@@ -39,6 +39,8 @@ import Foundation
    var needsFetch: Bool = false
    // Latest receipt post date
    var receiptPostDate: Date? = nil
+   // Latest date an update has been made
+   var updateDate: Date? = nil
 
    init(id: String?, sdk: Iaphub) {
       // If id defined use it
@@ -468,6 +470,8 @@ import Foundation
          guard err == nil else {
             return completion(err)
          }
+         // Update updateDate
+         self.updateDate = Date()
          // Reset cache
          self.resetCache()
          // Call completion
@@ -484,6 +488,7 @@ import Foundation
       self.pricings = []
       self.fetchDate = nil
       self.receiptPostDate = nil
+      self.updateDate = nil
       self.needsFetch = false
       self.isInitialized = false
    }
@@ -558,6 +563,8 @@ import Foundation
          }
          // Update receipt post date
          self.receiptPostDate = Date()
+         // Update updateDate
+         self.updateDate = Date()
          // Parse and return receipt response
          completion(nil, IHReceiptResponse(data))
       })
@@ -576,6 +583,8 @@ import Foundation
    func restore(_ completion: @escaping (IHError?) -> Void) {
       // Launch restore
       self.sdk.storekit.restore({ (err) in
+         // Update updateDate
+         self.updateDate = Date()
          // Refresh user
          self.refresh(interval: 0, force: true, { _, _, _ in
             completion(err)

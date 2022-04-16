@@ -32,6 +32,11 @@ class IHAPI {
    */
    public func getUser( _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
       var params: [String: Any] = [:]
+      // Add updateDate
+      if (self.user.updateDate != nil) {
+         params["updateDate"] = "\(Int64((self.user.updateDate!.timeIntervalSince1970 * 1000).rounded())))"
+      }
+      // Add device params
       for (key, value) in self.user.sdk.deviceParams {
          params["params.\(key)"] = value
       }
