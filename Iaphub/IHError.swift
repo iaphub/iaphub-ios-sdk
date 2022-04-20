@@ -104,11 +104,18 @@ class IHLocalizedError: LocalizedError {
       Send error
    */
    func send() {
-      if (self.sent == false) {
-         self.sent = true
-         self.triggerDelegate()
-         self.sendLog()
+      // Ignore some server errors (they are not real errors)
+      if (self.code == "server_error" && ["user_not_found", "user_authenticated"].contains(self.subcode)) {
+         return
       }
+      // Ignore if already sent
+      if (self.sent) {
+         return
+      }
+      // Trigger listener and send log
+      self.sent = true
+      self.triggerDelegate()
+      self.sendLog()
    }
    
    /**
@@ -126,7 +133,7 @@ class IHLocalizedError: LocalizedError {
       if (Iaphub.shared.logs == false) {
          return
       }
-      // Ignore some errors
+      // Ignore some errors when sending a log isn't necessary
       if (["user_cancelled"].contains(self.code)) {
          return
       }
