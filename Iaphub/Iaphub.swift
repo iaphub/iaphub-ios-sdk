@@ -80,6 +80,10 @@ import UIKit
       if (shared.user == nil || (oldAppId != appId) || (userId != nil && shared.user?.id != userId)) {
          shared.user = IHUser(id: userId, sdk: shared)
       }
+      // Otherwise reset user cache
+      else {
+         shared.user?.resetCache()
+      }
       // If it isn't been started yet
       if (shared.isStarted == false) {
          // Start storekit
