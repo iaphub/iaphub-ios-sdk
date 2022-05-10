@@ -45,7 +45,7 @@ class IHNetwork {
    /**
     Send a request
    */
-   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, retry: Int = 2, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
       // Use mock if defined
       if (self.mock != nil) {
          let mockData = self.mock?(type, route, params)
@@ -56,7 +56,7 @@ class IHNetwork {
       }
       // Retry request up to 3 times with a delay of 1 second
       IHUtil.retry(
-         times: 3,
+         times: retry,
          delay: 1,
          task: { (callback) in
             self.sendRequest(type: type, route: route, params: params, timeout: timeout) { (err, data, httpResponse) in

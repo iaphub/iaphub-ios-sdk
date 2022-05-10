@@ -108,7 +108,8 @@ class IHAPI {
       self.network.send(
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/log",
-         params: params
+         params: params,
+         retry: 0
       )  {(err, data) -> Void in
          completion(err);
       }
