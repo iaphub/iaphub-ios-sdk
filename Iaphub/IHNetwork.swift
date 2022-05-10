@@ -163,7 +163,7 @@ class IHNetwork {
          let task = session.dataTask(with: request) { (data, response, error) in
             // Check for any errors
             guard error == nil else {
-               return completion(IHError(IHErrors.network_error, IHNetworkErrors.request_failed, params: infos, silent: true), nil, nil)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.request_failed, message: error?.localizedDescription, params: infos, silent: true), nil, nil)
             }
             // Get http response
             guard let httpResponse = response as? HTTPURLResponse else {
