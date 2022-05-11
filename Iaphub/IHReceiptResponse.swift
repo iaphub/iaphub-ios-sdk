@@ -19,10 +19,10 @@ class IHReceiptResponse {
 
    init(_ data: Dictionary<String, Any>) {
       self.status = data["status"] as? String
-      self.newTransactions = IHUtil.parseItems(data: data["newTransactions"], type: IHReceiptTransaction.self, failure: { err, item in
+      self.newTransactions = IHUtil.parseItems(data: data["newTransactions"], type: IHReceiptTransaction.self, allowNull: true, failure: { err, item in
          IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transation_parsing_failed, message: "new transaction, err: \(err.localizedDescription)", params: ["item": item as Any])
       })
-      self.oldTransactions = IHUtil.parseItems(data: data["oldTransactions"], type: IHReceiptTransaction.self, failure: { err, item in
+      self.oldTransactions = IHUtil.parseItems(data: data["oldTransactions"], type: IHReceiptTransaction.self, allowNull: true, failure: { err, item in
          IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transation_parsing_failed, message: "old transaction, err: \(err.localizedDescription)", params: ["item": item as Any])
       })
    }
