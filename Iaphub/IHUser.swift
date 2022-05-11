@@ -191,7 +191,7 @@ import Foundation
       }
       // Check if the user id is valid
       if (self.isAnonymous() == false && IHUser.isValidId(self.id) == false) {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))"), isUpdated)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))", params: ["userId": self.id]), isUpdated)
       }
       // Add completion to the requests
       self.fetchRequests.append(completion)
@@ -341,7 +341,7 @@ import Foundation
          // Filter products for sale with no skProduct
          self.productsForSale = productsForSale.filter({ (product) in
             if (product.skProduct == nil) {
-               IHError(IHErrors.unexpected, IHUnexpectedErrors.product_missing_from_store, message: "(sku: \(product.sku)")
+               IHError(IHErrors.unexpected, IHUnexpectedErrors.product_missing_from_store, message: "(sku: \(product.sku)", params: ["sku": product.sku])
             }
             return product.skProduct != nil
          })
@@ -499,7 +499,7 @@ import Foundation
    func login(_ userId: String, _ completion: @escaping (IHError?) -> Void) {
       // Check that id is valid
       if (!IHUser.isValidId(userId)) {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "login failed"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "login failed", params: ["userId": userId]))
       }
       // Check that the id isn't the same
       if (self.id == userId) {

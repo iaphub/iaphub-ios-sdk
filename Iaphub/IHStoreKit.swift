@@ -82,7 +82,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
             return completion(err, nil)
          }
          if (products.count == 0) {
-            return completion(IHError(IHErrors.product_not_available), nil)
+            return completion(IHError(IHErrors.product_not_available, params: ["sku": sku]), nil)
          }
          completion(nil, products[0])
       })
