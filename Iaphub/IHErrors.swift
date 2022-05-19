@@ -85,6 +85,7 @@ enum IHUnexpectedErrors : String, IHErrorProtocol {
    case get_receipt_token_failed = "cannot get receipt token"
    case post_receipt_data_missing = "post receipt data missing"
    case date_parsing_failed = "the parsing of a date failed"
+   case property_missing = "a property is missing"
 
    var code: String {
       get { return String(describing: self) }

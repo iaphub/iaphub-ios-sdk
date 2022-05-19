@@ -55,6 +55,14 @@ import StoreKit
       self.subscriptionRenewalProduct = data["subscriptionRenewalProduct"] as? String
       self.subscriptionRenewalProductSku = data["subscriptionRenewalProductSku"] as? String
       self.subscriptionState = data["subscriptionState"] as? String
+      if (self.type.contains("subscription") && self.subscriptionState == nil) {
+         IHError(
+            IHErrors.unexpected,
+            IHUnexpectedErrors.property_missing,
+            message: "subscriptionState not found",
+            params: ["purchase": self.purchase as Any]
+         )
+      }
    }
    
    override public func getDictionary() -> [String: Any] {
