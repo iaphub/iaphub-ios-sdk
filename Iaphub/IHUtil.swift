@@ -183,19 +183,20 @@ class IHUtil {
    /**
     Convert ISO string to date
    */
-   static func dateFromIsoString(_ str: Any?, failure: ((Error) -> Void)? = nil) -> Date? {
-      if (str == nil) {
-         return nil
-      }
-      
+   static func dateFromIsoString(_ str: Any?, allowNull: Bool = false, failure: ((Error) -> Void)? = nil) -> Date? {
       let strDate = str as? String
       
       if (strDate == nil) {
-         failure?(IHLocalizedError("date cast to string failed"))
+         if (!allowNull) {
+            failure?(IHLocalizedError("date cast to string failed"))
+         }
          return nil
       }
       
       guard let strDate = strDate else {
+         if (!allowNull) {
+            failure?(IHLocalizedError("date cast to string failed"))
+         }
          return nil
       }
       

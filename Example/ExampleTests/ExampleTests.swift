@@ -145,6 +145,11 @@ class IaphubTests: XCTestCase {
                      "user": "61781dff9bf07f0c7d32c8b5",
                      "purchase": "2e517bdd0613c16f11e7fbt1",
                      "purchaseDate": "2021-05-22T01:34:40.462Z",
+                     "expirationDate": "2025-05-22T01:34:40.462Z",
+                     "subscriptionState": "active",
+                     "subscriptionPeriodType": "normal",
+                     "isSubscriptionRenewable": true,
+                     "isSubscriptionPaused": false,
                      "webhookStatus": "success"
                   ]
                ]

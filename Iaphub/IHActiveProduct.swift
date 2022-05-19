@@ -15,9 +15,9 @@ import StoreKit
    @objc public var purchase: String?
    // Purchase date
    @objc public var purchaseDate: Date?
-   
    // Platform of the purchase
    @objc public var platform: String?
+
    // Subscription expiration date
    @objc public var expirationDate: Date?
    // Returns if the subscription will auto renew
@@ -42,7 +42,8 @@ import StoreKit
          )
       })
       self.platform = data["platform"] as? String
-      self.expirationDate = IHUtil.dateFromIsoString(data["expirationDate"], failure: { err in
+      // The following properties are for subscritions only
+      self.expirationDate = IHUtil.dateFromIsoString(data["expirationDate"], allowNull: !self.type.contains("subscription"), failure: { err in
          IHError(
             IHErrors.unexpected,
             IHUnexpectedErrors.date_parsing_failed,
