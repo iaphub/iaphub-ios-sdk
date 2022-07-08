@@ -268,7 +268,7 @@ import Foundation
       let pricings = products
       .map({ (product) -> IHProductPricing? in
          if (product.price != 0 && product.currency != nil) {
-            return IHProductPricing(id: product.id, price: product.price, currency: product.currency!)
+            return IHProductPricing(id: product.id, price: product.price, currency: product.currency!, introPrice: product.subscriptionIntroPrice)
          }
          return nil;
       })
@@ -277,8 +277,11 @@ import Foundation
       let samePricings = pricings.filter { (newPricing) -> Bool in
          // Look if we already have the pricing in memory
          let itemFound = self.pricings.first { (oldPricing) -> Bool in
-            if (oldPricing.id == newPricing.id && oldPricing.price == newPricing.price && oldPricing.currency == newPricing.currency) {
-               return true;
+            if (oldPricing.id == newPricing.id &&
+                oldPricing.price == newPricing.price &&
+                oldPricing.currency == newPricing.currency &&
+                oldPricing.introPrice == newPricing.introPrice) {
+                  return true;
             }
             return false;
          }

@@ -13,6 +13,8 @@ class IHProductPricing: IHParsable {
    public var id: String
    // Product price
    public var price: Decimal = 0
+   // Product intro price
+   public var introPrice: Decimal = 0
    // Product currency
    public var currency: String
 
@@ -23,19 +25,29 @@ class IHProductPricing: IHParsable {
       self.id = id
       self.price = Decimal(price)
       self.currency = currency
+      // Add intro price if defined
+      if let introPrice = data["introPrice"] as? Double {
+         self.introPrice = Decimal(introPrice)
+      }
    }
    
-   init(id: String, price: Decimal, currency: String) {
+   init(id: String, price: Decimal, currency: String, introPrice: Decimal = 0) {
       self.id = id
       self.price = price
       self.currency = currency
+      self.introPrice = introPrice
    }
    
    func getDictionary() -> [String: Any] {
-      return [
+      var dic = [
          "id": self.id as Any,
          "price": self.price as Any,
          "currency": self.currency as Any
       ]
+      // Add only intro price if defined
+      if (self.introPrice != 0) {
+         dic["introPrice"] = self.introPrice as Any
+      }
+      return dic
    }
 }

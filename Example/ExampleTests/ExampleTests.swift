@@ -57,6 +57,20 @@ class IaphubTests: XCTestCase {
    func test01_getProductsForSale() async throws {
       IHUtil.deleteFromKeychain(key: "iaphub_user_a_61718bfd9bf07f0c7d2357d1")
       IHUtil.deleteFromKeychain(key: "iaphub_user_61718bfd9bf07f0c7d2357d1")
+      var pricePosted = false
+      
+      Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
+         if (route.contains("/pricing")) {
+            let products = params["products"] as? [Dictionary<String, Any>]
+            
+            if let products = products {
+               if (products[0]["price"] as? Decimal == 1.99 && products[0]["currency"] as? String == "USD") {
+                  pricePosted = true
+               }
+            }
+         }
+         return nil
+      }
       
       let products = try await Iaphub.getProductsForSale()
       XCTAssertEqual(self.delegate.userUpdateCount, 0)
@@ -68,6 +82,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(products[0].localizedPrice, "$1.99")
       XCTAssertEqual(products[0].price, 1.99)
       XCTAssertEqual(products[0].currency, "USD")
+      XCTAssertEqual(pricePosted, true)
    }
 
    func test02_login() async throws {
