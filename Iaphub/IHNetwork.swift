@@ -45,7 +45,7 @@ class IHNetwork {
    /**
     Send a request
    */
-   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, retry: Int = 2, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 6.0, retry: Int = 2, silentLog: Bool = false, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
       // Use mock if defined
       if (self.mock != nil) {
          let mockData = self.mock?(type, route, params)
@@ -76,7 +76,7 @@ class IHNetwork {
          },
          completion: { (err, data) in
             // Send error if there is one
-            if (err != nil) {
+            if (err != nil && silentLog != true) {
                err?.send()
             }
             // Call completion

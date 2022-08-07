@@ -109,7 +109,9 @@ class IHAPI {
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/log",
          params: params,
-         retry: 0
+         timeout: 10,
+         retry: 0,
+         silentLog: true
       )  {(err, data) -> Void in
          completion(err);
       }
