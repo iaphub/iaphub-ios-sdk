@@ -65,10 +65,10 @@ import Foundation
          return id
       }
       let id = IHConfig.anonymousUserPrefix + UUID().uuidString.lowercased()
-      let result = IHUtil.saveToKeychain(key: key, value: id)
+      let err = IHUtil.saveToKeychain(key: key, value: id)
       
-      if (result == false) {
-         IHError(IHErrors.unexpected, IHUnexpectedErrors.anonymous_id_keychain_save_failed)
+      if (err != nil) {
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.anonymous_id_keychain_save_failed, message: err?.message)
       }
       return id
    }
@@ -165,10 +165,10 @@ import Foundation
       
       let str = String(data: data!, encoding: String.Encoding.utf8)
       let prefix = self.isAnonymous() ? "iaphub_user_a" : "iaphub_user"
-      let result = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
+      let err = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
       
-      if (result == false) {
-         IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_keychain_failed)
+      if (err != nil) {
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.save_cache_keychain_failed, message: err?.message)
       }
    }
 

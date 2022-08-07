@@ -113,21 +113,22 @@ class IHUtil {
    /**
     Delete key from keychain
     */
-   static func deleteFromKeychain(key: String) -> Bool {
+   static func deleteFromKeychain(key: String) -> IHLocalizedError? {
       let keychainQueryDictionary: [String:Any] = Self.setupKeychainQueryDictionary(key)
       let status: OSStatus = SecItemDelete(keychainQueryDictionary as CFDictionary)
 
-     if status == errSecSuccess {
-         return true
-     } else {
-         return false
-     }
+      if status == errSecSuccess {
+         return nil
+      }
+      else {
+         return self.getKeychainStatusLocalizedError(status)
+      }
    }
    
    /**
     Save value to keychain
     */
-   static func saveToKeychain(key: String, value: String?) -> Bool {
+   static func saveToKeychain(key: String, value: String?) -> IHLocalizedError? {
       // Delete if the value is nil
       guard let value = value else {
          return Self.deleteFromKeychain(key: key)
@@ -143,16 +144,37 @@ class IHUtil {
       let status: OSStatus = SecItemAdd(keychainQueryDictionary as CFDictionary, nil)
 
       if status == errSecSuccess {
-         return true
-      } else if status == errSecDuplicateItem {
+         return nil
+      }
+      else if status == errSecDuplicateItem {
          let SecValueData = kSecValueData as String
          let updateDictionary = [SecValueData:data]
          let status: OSStatus = SecItemUpdate(Self.setupKeychainQueryDictionary(key) as CFDictionary, updateDictionary as CFDictionary)
          
-         return status == errSecSuccess ? true : false
-      } else {
-         return false
+         if (status == errSecSuccess) {
+            return nil
+         }
+         return self.getKeychainStatusLocalizedError(status)
       }
+      
+      return self.getKeychainStatusLocalizedError(status)
+   }
+   
+   /**
+    Convert ISO string to date
+   */
+   static func getKeychainStatusLocalizedError(_ status: OSStatus) -> IHLocalizedError {
+      var errorDescription = "unknown error"
+
+      if #available(iOS 11.3, *) {
+         if let errMessage = SecCopyErrorMessageString(status, nil) as String? {
+            errorDescription = errMessage
+         }
+      }
+      else {
+         errorDescription = errorDescription + ", error message not available below iOS 11.3"
+      }
+      return IHLocalizedError(errorDescription)
    }
    
    /**
