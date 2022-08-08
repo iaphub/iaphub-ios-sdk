@@ -376,22 +376,26 @@ import UIKit
       self.storekit.start(
          // Event triggered when a new receipt is available
          onReceipt: { (receipt, finish) in
+            var error: IHError? = nil
+            var shouldFinishReceipt = false
+            var transaction: IHReceiptTransaction? = nil
+            // Method to finish the processing
+            func callFinish() {
+               // Finish receipt
+               finish(error, shouldFinishReceipt, transaction)
+               // Trigger didProcessReceipt event
+               Self.delegate?.didProcessReceipt?(err: error, receipt: receipt)
+            }
             // Check the sdk is started
             guard let user = self.user else {
+               error = IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "onReceipt failed")
+               callFinish()
                return
             }
             // When receiving a receipt, post it
             user.postReceipt(receipt, { (err, receiptResponse) in
-               var error = err
-               var shouldFinishReceipt = false
-               var transaction: IHReceiptTransaction? = nil
-
-               func callFinish() {
-                  // Finish receipt
-                  finish(error, shouldFinishReceipt, transaction)
-                  // Trigger didProcessReceipt event
-                  Self.delegate?.didProcessReceipt?(err: error, receipt: receipt)
-               }
+               // Update error
+               error = err
                // Check receipt response
                if error == nil, let receiptResponse = receiptResponse {
                   // Refresh user in case the user id has been updated
