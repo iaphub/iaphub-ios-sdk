@@ -503,9 +503,9 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       self.restoreRequest = nil
       // Get receipt token
       let receiptToken = self.getReceiptToken()
-      // Check receipt token is not nil
+      // Check receipt token is not nil, if that's the case it just means the user has no purchases
       guard let token = receiptToken else {
-         return restoreRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.get_receipt_token_failed, message: "from restored transaction"))
+         return restoreRequest(nil)
       }
       // Create receipt object
       let receipt = IHReceipt(token: token, sku: "", context: "restore")
