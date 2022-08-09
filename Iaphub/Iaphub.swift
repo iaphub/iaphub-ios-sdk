@@ -404,19 +404,23 @@ import UIKit
                      shouldFinishReceipt = true
                      // Check if the receipt is invalid
                      if (receiptResponse.status == "invalid") {
-                        error = IHError(IHErrors.receipt_invalid)
+                        error = IHError(IHErrors.receipt_invalid, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
                      // Check if the receipt is failed
                      else if (receiptResponse.status == "failed") {
-                        error = IHError(IHErrors.receipt_failed)
+                        error = IHError(IHErrors.receipt_failed, params: ["context": receipt.context])
                      }
                      // Check if the receipt is stale
                      else if (receiptResponse.status == "stale") {
-                        error = IHError(IHErrors.receipt_stale)
+                        error = IHError(IHErrors.receipt_stale, params: ["context": receipt.context], silent: receipt.context != "purchase")
+                     }
+                     // Check if the receipt is processing
+                     else if (receiptResponse.status == "processing") {
+                        error = IHError(IHErrors.receipt_processing, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
                      // Check any other status different than success
                      else if (receiptResponse.status != "success") {
-                        error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_response_invalid, message: "status: \(receiptResponse.status ?? "nil")")
+                        error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_response_invalid, message: "status: \(receiptResponse.status ?? "nil")", params: ["context": receipt.context])
                         shouldFinishReceipt = false
                      }
                      // Get transaction if we're in a purchase context
