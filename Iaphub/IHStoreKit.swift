@@ -111,6 +111,10 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       if (self.buyRequest != nil) {
          return completion(IHError(IHErrors.buy_processing), nil)
       }
+      // Return an error if a restore request is currently processing
+      if (self.restoreRequest != nil) {
+         return completion(IHError(IHErrors.restore_processing), nil)
+      }
       // Otherwise process the purchase
       let payment = SKPayment(product: product)
       // Add buy request
@@ -123,6 +127,11 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     Restore completed transactions
     */
    public func restore(_ completion: @escaping (IHError?) -> Void) {
+      // Return an error if a buy request is currently processing
+      if (self.buyRequest != nil) {
+         return completion(IHError(IHErrors.buy_processing))
+      }
+      // Return an error if a restore request is currently processing
       if (self.restoreRequest != nil) {
          return completion(IHError(IHErrors.restore_processing))
       }
