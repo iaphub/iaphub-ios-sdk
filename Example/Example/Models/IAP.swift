@@ -67,9 +67,9 @@ class IAP: ObservableObject {
             else if (err.code == "product_owned_different_user") {
                return self.openAlert("You already purchased this product but it is currently used by a different account, restore your purchases to transfer it to this account")
             }
-            // The payment has been deferred (awaiting approval from parental control)
+            // The payment has been deferred (transaction pending, its final status is pending external action)
             else if (err.code == "deferred_payment") {
-               return self.openAlert("Your purchase is awaiting approval from the parental control")
+               return self.openAlert("Purchase awaiting approval, your purchase has been processed but is awaiting approval")
             }
             /*
              * The remote server couldn't be reached properly

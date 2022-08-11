@@ -26,5 +26,27 @@ class IHReceiptResponse {
          IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_transation_parsing_failed, message: "old transaction, err: \(err.localizedDescription)", params: ["item": item as Any])
       })
    }
+   
+   public func findTransactionBySku(sku: String, filter: String?, useSubscriptionRenewalProductSku: Bool = false) -> IHReceiptTransaction? {
+      var transactions: [IHReceiptTransaction] = []
+      
+      if (filter == "new" || filter == nil) {
+         if let newTransactions = self.newTransactions {
+            transactions.append(contentsOf: newTransactions)
+         }
+      }
+      if (filter == "old" || filter == nil) {
+         if let oldTransactions = self.oldTransactions {
+            transactions.append(contentsOf: oldTransactions)
+         }
+      }
+      
+      return transactions.first { transaction in
+         if (useSubscriptionRenewalProductSku) {
+            return transaction.subscriptionRenewalProductSku == sku
+         }
+         return transaction.sku == sku
+      }
+   }
 
 }

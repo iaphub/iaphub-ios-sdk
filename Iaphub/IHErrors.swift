@@ -23,7 +23,7 @@ public enum IHErrors : String, IHErrorProtocol {
    case billing_unavailable = "The billing is unavailable (An iPhone can be restricted from accessing the Apple App Store)"
    case anonymous_purchase_not_allowed = "Anonymous purchase are not allowed, identify user using the login method or enable the anonymous purchase option"
    case user_cancelled = "The purchase has been cancelled by the user"
-   case deferred_payment = "The payment has been deferred (awaiting approval from parental control)"
+   case deferred_payment = "The payment has been deferred (transaction pending, its final status is pending external action)"
    case product_not_available = "The requested product isn't available for purchase"
    case receipt_failed = "Receipt validation failed, receipt processing will be automatically retried if possible"
    case receipt_invalid = "Receipt is invalid"

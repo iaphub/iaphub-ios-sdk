@@ -414,6 +414,10 @@ import UIKit
                      else if (receiptResponse.status == "stale") {
                         error = IHError(IHErrors.receipt_stale, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
+                     // Check if the receipt is deferred (not needed on iOS but still implemented it in case)
+                     else if (receiptResponse.status == "deferred") {
+                        error = IHError(IHErrors.deferred_payment, params: ["context": receipt.context], silent: true)
+                     }
                      // Check if the receipt is processing
                      else if (receiptResponse.status == "processing") {
                         error = IHError(IHErrors.receipt_processing, params: ["context": receipt.context], silent: receipt.context != "purchase")
@@ -423,35 +427,45 @@ import UIKit
                         error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_response_invalid, message: "status: \(receiptResponse.status ?? "nil")", params: ["context": receipt.context])
                         shouldFinishReceipt = false
                      }
-                     // Get transaction if we're in a purchase context
-                     if (error == nil && receipt.context == "purchase") {
-                        // Get the new transaction from the response
-                        transaction = receiptResponse.newTransactions?.first(where: { $0.sku == receipt.sku})
-                        // If transaction not found, look if it is a product change
+                     // If there is no error, try to find the transaction
+                     if (error == nil) {
+                        // Look first in the new transactions
+                        transaction = receiptResponse.findTransactionBySku(sku: receipt.sku, filter: "new")
+                        // If the transaction hasn't been found
                         if (transaction == nil) {
-                           transaction = receiptResponse.newTransactions?.first(where: { $0.subscriptionRenewalProductSku == receipt.sku})
-                        }
-                        // Otherwise we have an error
-                        if (transaction == nil) {
-                           // Check if it is because of a subscription already active
-                           let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku})
-                           if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
-                              // Check if the transaction belongs to a different user
-                              if (oldTransaction?.user != nil && user.iaphubId != nil && oldTransaction?.user != user.iaphubId) {
-                                 error = IHError(IHErrors.user_conflict, params: ["loggedUser": user.iaphubId as Any, "transactionUser": oldTransaction?.user as Any])
-                              }
-                              else {
-                                 error = IHError(IHErrors.product_already_purchased, params: ["sku": receipt.sku])
-                              }
+                           // If it is purchase, look for a product change
+                           if (receipt.context == "purchase") {
+                              transaction = receiptResponse.findTransactionBySku(sku: receipt.sku, filter: "new", useSubscriptionRenewalProductSku: true)
                            }
-                           // Otherwise it means the product sku wasn't in the receipt
+                           // Otherwise look in the old transactions
                            else {
-                              error = IHError(IHErrors.transaction_not_found, params: ["sku": receipt.sku])
+                              transaction = receiptResponse.findTransactionBySku(sku: receipt.sku, filter: "old")
                            }
                         }
-                        // If we have a transaction check that it belongs to the same user
-                        else if (transaction?.user != nil && user.iaphubId != nil && transaction?.user != user.iaphubId) {
-                           error = IHError(IHErrors.user_conflict, params: ["loggedUser": user.iaphubId as Any, "transactionUser": transaction?.user as Any])
+                        // If it is a purchase, check for errors
+                        if (receipt.context == "purchase") {
+                           // If we didn't find any transaction, we have an error
+                           if (transaction == nil) {
+                              // Check if it is because of a subscription already active
+                              let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku})
+                              if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
+                                 // Check if the transaction belongs to a different user
+                                 if (oldTransaction?.user != nil && user.iaphubId != nil && oldTransaction?.user != user.iaphubId) {
+                                    error = IHError(IHErrors.user_conflict, params: ["loggedUser": user.iaphubId as Any, "transactionUser": oldTransaction?.user as Any])
+                                 }
+                                 else {
+                                    error = IHError(IHErrors.product_already_purchased, params: ["sku": receipt.sku])
+                                 }
+                              }
+                              // Otherwise it means the product sku wasn't in the receipt
+                              else {
+                                 error = IHError(IHErrors.transaction_not_found, params: ["sku": receipt.sku])
+                              }
+                           }
+                           // If we have a transaction check that it belongs to the same user
+                           else if (transaction?.user != nil && user.iaphubId != nil && transaction?.user != user.iaphubId) {
+                              error = IHError(IHErrors.user_conflict, params: ["loggedUser": user.iaphubId as Any, "transactionUser": transaction?.user as Any])
+                           }
                         }
                      }
                      // Call finish
