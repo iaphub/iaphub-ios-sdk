@@ -27,6 +27,8 @@ import Foundation
    var sdk: Iaphub
    // API
    var api: IHAPI?
+   // Event when the user is updated
+   var onUserUpdate: () -> Void
    // Fetch requests
    var fetchRequests: [((IHError?, Bool) -> Void)] = []
    // Indicates if the user is currently being fetched
@@ -42,7 +44,7 @@ import Foundation
    // Latest date an update has been made
    var updateDate: Date? = nil
 
-   init(id: String?, sdk: Iaphub) {
+   init(id: String?, sdk: Iaphub, onUserUpdate: @escaping () -> Void) {
       // If id defined use it
       if let userId = id {
          self.id = userId
@@ -52,6 +54,7 @@ import Foundation
          self.id = IHUser.getAnonymousId()
       }
       self.sdk = sdk
+      self.onUserUpdate = onUserUpdate
       super.init()
       self.api = IHAPI(user: self)
    }
@@ -91,6 +94,43 @@ import Foundation
       }
       
       return true
+   }
+   
+   /**
+    Buy product
+    */
+   func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
+      // Refresh user
+      self.refresh({ (err, isFetched, isUpdated) in
+         // Check if there is an error
+         guard err == nil else {
+            return completion(err, nil)
+         }
+         // Get product
+         self.sdk.storekit.getSkProduct(sku) { err, product in
+            // Check if there is an error
+            guard let product = product else {
+               return completion(err, nil)
+            }
+            // Try to get the product from the products for sale
+            let productForSale = self.productsForSale.first(where: {$0.sku == sku})
+            // Detect if the product has a subscription period (it means it is a subscription)
+            var hasSubscriptionPeriod = false
+            if #available(iOS 11.2, *) {
+               hasSubscriptionPeriod = (product.subscriptionPeriod != nil) ? true : false
+            }
+            // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
+            if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
+               // Check cross platform conflicts
+               let conflictedSubscription = self.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
+               if (crossPlatformConflict && conflictedSubscription != nil) {
+                  return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
+               }
+            }
+            // Launch purchase
+            self.sdk.storekit.buy(product, completion)
+         }
+      })
    }
 
    /**
@@ -226,6 +266,7 @@ import Foundation
             // Only mark as updated for the first request
             if (isUpdated == true) {
                isUpdated = false
+               self.onUserUpdate()
             }
          })
       }
@@ -359,7 +400,7 @@ import Foundation
    /**
     Refresh user
    */
-   func refresh(interval: Double, force: Bool = false, _ completion: @escaping (IHError?, Bool, Bool) -> Void) {
+   func refresh(interval: Double, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
       // Check if we need to fetch the user
       if (
             // Refresh forced
@@ -378,42 +419,43 @@ import Foundation
             if (err != nil) {
                // Return an error if the user has never been fetched
                if (self.fetchDate == nil) {
-                  completion(err, false, false)
+                  completion?(err, false, false)
                }
                // Otherwise check if there is an expired subscription in the active products
                else {
                   let expiredSubscription = self.activeProducts.first(where: { $0.expirationDate != nil && $0.expirationDate! < Date()})
                   // If we have an expired subscription, return an error
                   if (expiredSubscription != nil) {
-                     completion(err, false, false)
+                     completion?(err, false, false)
                   }
                   // Otherwise return no error
                   else {
-                     completion(nil, false, false)
+                     completion?(nil, false, false)
                   }
                }
             }
             // Otherwise it's a success
             else {
-               completion(nil, true, isUpdated)
+               completion?(nil, true, isUpdated)
             }
          })
       }
       // Otherwise no need to fetch the user
       else {
-         completion(nil, false, false)
+         completion?(nil, false, false)
       }
    }
    
    /**
     Refresh user with a shorter interval if the user has an active subscription (otherwise every 24 hours by default)
    */
-   func refresh(_ completion: @escaping (IHError?, Bool, Bool) -> Void) {
+   func refresh(_ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
       // Refresh user
       self.refresh(interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
          // Check if there is an error
          guard err == nil else {
-            return completion(err, isFetched, isUpdated)
+            completion?(err, isFetched, isUpdated)
+            return
          }
          // If the user has not been fetched, look if there is active subscriptions
          if (isFetched == false) {
@@ -426,12 +468,12 @@ import Foundation
             }
             // Otherwise call the completion
             else {
-               completion(nil, isFetched, isUpdated)
+               completion?(nil, isFetched, isUpdated)
             }
          }
          // Otherwise call the completion
          else {
-            completion(nil, isFetched, isUpdated)
+            completion?(nil, isFetched, isUpdated)
          }
       })
    }
@@ -439,20 +481,58 @@ import Foundation
    /**
     Get active products
    */
-   func getActiveProducts(includeSubscriptionStates: [String] = []) -> [IHActiveProduct] {
-      let subscriptionStates = ["active", "grace_period"] + includeSubscriptionStates
-      let activeProducts = self.activeProducts.filter({ (activeProduct) -> Bool in
-         // Return product if it has no subscription state
-         guard let subscriptionState = activeProduct.subscriptionState else {
-            return true
+   func getActiveProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHActiveProduct]?) -> Void) {
+      // Refresh user
+      self.refresh({ (err, _, _) in
+         // Check if there is an error
+         guard err == nil else {
+            return completion(err, nil)
          }
-         // Otherwise return product only if the state is in the list
-         return subscriptionStates.contains(subscriptionState)
+         // Get active products
+         let subscriptionStates = ["active", "grace_period"] + includeSubscriptionStates
+         let activeProducts = self.activeProducts.filter({ (activeProduct) -> Bool in
+            // Return product if it has no subscription state
+            guard let subscriptionState = activeProduct.subscriptionState else {
+               return true
+            }
+            // Otherwise return product only if the state is in the list
+            return subscriptionStates.contains(subscriptionState)
+         })
+         // Return active products
+         completion(err, activeProducts)
       })
-      
-      return activeProducts
    }
    
+   /**
+    Get products for sale
+    */
+   func getProductsForSale(_ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
+      // Refresh user with an interval of 24 hours
+      self.refresh(interval: 60 * 60 * 24, { (err, _, _) in
+         // Check if there is an error
+         guard err == nil else {
+            return completion(err, nil)
+         }
+         // Otherwise return the products
+         completion(nil, self.productsForSale)
+      })
+   }
+   
+   /**
+    Get products (active and for sale)
+    */
+   func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?, [IHActiveProduct]?) -> Void) {
+      // Get active products
+      self.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates) { err, activeProducts in
+         // Check if there is an error
+         if (err != nil) {
+            return completion(err, nil, nil)
+         }
+         // Otherwise return the products
+         completion(nil, self.productsForSale, activeProducts)
+      }
+   }
+
    /**
     Set tags
    */

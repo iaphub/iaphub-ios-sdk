@@ -78,7 +78,7 @@ import UIKit
       }
       // Initialize user
       if (shared.user == nil || (oldAppId != appId) || (userId != nil && shared.user?.id != userId)) {
-         shared.user = IHUser(id: userId, sdk: shared)
+         shared.user = IHUser(id: userId, sdk: shared, onUserUpdate: shared.onUserUpdate)
       }
       // Otherwise reset user cache
       else {
@@ -170,37 +170,8 @@ import UIKit
       if (user.isAnonymous() && shared.allowAnonymousPurchase == false) {
          return completion(IHError(IHErrors.anonymous_purchase_not_allowed), nil)
       }
-      // Refresh user
-      shared.refreshUser({ (err, isFetched, isUpdated) in
-         // Check if there is an error
-         guard err == nil else {
-            return completion(err, nil)
-         }
-         // Get product 
-         shared.storekit.getSkProduct(sku) { err, product in
-            // Check if there is an error
-            guard let product = product else {
-               return completion(err, nil)
-            }
-            // Try to get the product from the products for sale
-            let productForSale = user.productsForSale.first(where: {$0.sku == sku})
-            // Detect if the product has a subscription period (it means it is a subscription)
-            var hasSubscriptionPeriod = false
-            if #available(iOS 11.2, *) {
-               hasSubscriptionPeriod = (product.subscriptionPeriod != nil) ? true : false
-            }
-            // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
-            if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
-               // Check cross platform conflicts
-               let conflictedSubscription = user.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
-               if (crossPlatformConflict && conflictedSubscription != nil) {
-                  return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
-               }
-            }
-            // Launch purchase
-            shared.storekit.buy(product, completion)
-         }
-      })
+      // Buy product
+      user.buy(sku: sku, crossPlatformConflict: crossPlatformConflict, completion)
    }
    
    /**
@@ -231,15 +202,8 @@ import UIKit
       guard let user = shared.user else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getActiveProducts failed"), nil)
       }
-      // Refresh user
-      shared.refreshUser({ (err, isFetched, isUpdated) in
-         // Check if there is an error
-         guard err == nil else {
-            return completion(err, nil)
-         }
-         // Return active products
-         completion(err, user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
-      })
+      // Return active products
+      user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
    }
 
    /**
@@ -250,15 +214,8 @@ import UIKit
       guard let user = shared.user else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProductsForSale failed"), nil)
       }
-      // Refresh user with an interval of 24 hours
-      shared.refreshUser(interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
-         // Check if there is an error
-         guard err == nil else {
-            return completion(err, nil)
-         }
-         // Otherwise return the products
-         completion(nil, user.productsForSale)
-      })
+      // Return products for sale
+      user.getProductsForSale(completion)
    }
    
    /**
@@ -269,17 +226,10 @@ import UIKit
       guard let user = shared.user else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProducts failed"), nil, nil)
       }
-      // Get active products
-      self.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates) { err, activeProducts in
-         // Check if there is an error
-         if (err != nil) {
-            return completion(err, nil, nil)
-         }
-         // Otherwise return the products
-         completion(nil, user.productsForSale, user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates))
-      }
+      // Return products
+      user.getProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
    }
-   
+
    /**
     Present code redemption
     */
@@ -299,6 +249,13 @@ import UIKit
    /***************************** PRIVATE ******************************/
    
    /**
+    Triggered when there is an user update
+   */
+   private func onUserUpdate() {
+      Self.delegate?.didReceiveUserUpdate?()
+   }
+   
+   /**
    Triggerred when the app is going to the background
     */
    @objc private func onAppBackground() {
@@ -313,40 +270,8 @@ import UIKit
       // Resume storekit
       self.storekit.resume();
       // Refresh user (only if it has already been fetched)
-      if (self.user?.fetchDate != nil) {
-         self.refreshUser()
-      }
-   }
-
-   /**
-    Refresh user
-    */
-   private func refreshUser(interval: Double = 0, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
-      // Check the sdk is started
-      guard let user = self.user else {
-         completion?(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "refreshUser failed"), false, false)
-         return
-      }
-      // Refresh callback function
-      func callback(err: IHError?, isFetched: Bool, isUpdated: Bool) {
-         // Trigger didReceiveUserUpdate event if the user has been updated
-         if (isUpdated) {
-            Self.delegate?.didReceiveUserUpdate?()
-         }
-         // Call completion if defined
-         completion?(err, isFetched, isUpdated)
-      }
-      // Fetch directly, cache disabled
-      if (force == true) {
-         user.refresh(interval: 0, force: true, callback)
-      }
-      // Refresh user with interval
-      else if (interval > 0) {
-         user.refresh(interval: interval, callback)
-      }
-      // Otherwise refresh with no interval
-      else {
-         user.refresh(callback)
+      if let user = self.user, user.fetchDate != nil {
+         user.refresh()
       }
    }
    
@@ -381,7 +306,7 @@ import UIKit
                // Check receipt response
                if error == nil, let receiptResponse = receiptResponse {
                   // Refresh user in case the user id has been updated
-                  self.refreshUser({ (_, _, _) in
+                  user.refresh({ (_, _, _) in
                      // Finish receipt
                      shouldFinishReceipt = true
                      // Check if the receipt is invalid
