@@ -11,6 +11,8 @@
 		964E862726A8413B00C3BEBA /* IHConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964E862626A8413B00C3BEBA /* IHConfig.swift */; };
 		9653128127D578F100BE1D46 /* IHErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9653128027D578F100BE1D46 /* IHErrors.swift */; };
 		9653128327E4104D00BE1D46 /* IHLogLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9653128227E4104D00BE1D46 /* IHLogLimit.swift */; };
+		9671F97828A9BA2700405B78 /* IHProductDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9671F97728A9BA2700405B78 /* IHProductDetails.swift */; };
+		9671F97A28A9C49D00405B78 /* IHSubscriptionIntroPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9671F97928A9C49D00405B78 /* IHSubscriptionIntroPhase.swift */; };
 		96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CBD49C271F5F0900B9ECCB /* IHParsable.swift */; };
 		96CFA0A624F82B1900793E42 /* IHUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A524F82B1900793E42 /* IHUser.swift */; };
 		96CFA0A824F82BAA00793E42 /* IHProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A724F82BAA00793E42 /* IHProduct.swift */; };
@@ -32,6 +34,8 @@
 		964E862626A8413B00C3BEBA /* IHConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHConfig.swift; sourceTree = "<group>"; };
 		9653128027D578F100BE1D46 /* IHErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHErrors.swift; sourceTree = "<group>"; };
 		9653128227E4104D00BE1D46 /* IHLogLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHLogLimit.swift; sourceTree = "<group>"; };
+		9671F97728A9BA2700405B78 /* IHProductDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProductDetails.swift; sourceTree = "<group>"; };
+		9671F97928A9C49D00405B78 /* IHSubscriptionIntroPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHSubscriptionIntroPhase.swift; sourceTree = "<group>"; };
 		96CBD49C271F5F0900B9ECCB /* IHParsable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHParsable.swift; sourceTree = "<group>"; };
 		96CFA0A524F82B1900793E42 /* IHUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHUser.swift; sourceTree = "<group>"; };
 		96CFA0A724F82BAA00793E42 /* IHProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProduct.swift; sourceTree = "<group>"; };
@@ -97,6 +101,8 @@
 				964E862626A8413B00C3BEBA /* IHConfig.swift */,
 				96CBD49C271F5F0900B9ECCB /* IHParsable.swift */,
 				9653128227E4104D00BE1D46 /* IHLogLimit.swift */,
+				9671F97728A9BA2700405B78 /* IHProductDetails.swift */,
+				9671F97928A9C49D00405B78 /* IHSubscriptionIntroPhase.swift */,
 			);
 			path = Iaphub;
 			sourceTree = "<group>";
@@ -189,8 +195,10 @@
 				96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */,
 				96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */,
 				96CFA0B424FBF3B200793E42 /* IHStoreKit.swift in Sources */,
+				9671F97A28A9C49D00405B78 /* IHSubscriptionIntroPhase.swift in Sources */,
 				96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */,
 				96E16E3B2631EE440003C857 /* IHQueue.swift in Sources */,
+				9671F97828A9BA2700405B78 /* IHProductDetails.swift in Sources */,
 				96CFA0B224F89AC000793E42 /* IHError.swift in Sources */,
 				96DFDDA2252390CA00A0795A /* IHProductPricing.swift in Sources */,
 				96FD8CC424DDA8D800122612 /* IHNetwork.swift in Sources */,

@@ -9,6 +9,21 @@
 import Foundation
 import StoreKit
 
+extension NSDecimalNumber {
+    
+    func getLocalizedPrice(locale: Locale) -> String? {
+        let formatter = NumberFormatter()
+
+        formatter.numberStyle = .currency
+        formatter.locale = locale
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+
+        return formatter.string(from: self)
+    }
+    
+}
+
 class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
    
    var products: [SKProduct] = []
@@ -69,15 +84,15 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    }
    
    /**
-    Get product
+    Get SK product
     */
-   public func getProduct(_ sku: String, _ completion: @escaping (IHError?, SKProduct?) -> Void) {
+   public func getSkProduct(_ sku: String, _ completion: @escaping (IHError?, SKProduct?) -> Void) {
       let product = self.products.first(where: {$0.productIdentifier == sku})
       
       if (product != nil) {
          return completion(nil, product)
       }
-      self.getProducts([sku], { (err, products) in
+      self.getSKProducts([sku], { (err, products) in
          guard let products = products else {
             return completion(err, nil)
          }
@@ -89,14 +104,102 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    }
    
    /**
-    Get products
+    Get SK products
     */
-   public func getProducts(_ skus: Set<String>, _ completion: @escaping (IHError?, [SKProduct]?) -> Void) {
+   public func getSKProducts(_ skus: Set<String>, _ completion: @escaping (IHError?, [SKProduct]?) -> Void) {
       let request = SKProductsRequest(productIdentifiers: skus)
 
       self.getProductsRequests.append((request: request, skus: skus, completion: completion))
       request.delegate = self
       request.start()
+   }
+   
+   /**
+    Convert SKProduct duration to ISO8601 format
+    */
+   @available(iOS 11.2, *)
+   func convertToISO8601(_ numberOfUnits: Int, _ unit: SKProduct.PeriodUnit) -> String? {
+      if (unit == SKProduct.PeriodUnit.year) {
+         return "P\(numberOfUnits)Y"
+      }
+      else if (unit == SKProduct.PeriodUnit.month) {
+         return "P\(numberOfUnits)M"
+      }
+      else if (unit == SKProduct.PeriodUnit.week) {
+         return "P\(numberOfUnits)W"
+      }
+      else if (unit == SKProduct.PeriodUnit.day) {
+         return "P\(numberOfUnits)D"
+      }
+      return nil;
+   }
+   
+   /**
+    Get products details
+    */
+   public func getProductsDetails(_ skus: Set<String>, _ completion: @escaping (IHError?, [IHProductDetails]?) -> Void) {
+      // Get SK products
+      self.getSKProducts(skus) { err, skProducts in
+         // Check error
+         guard err == nil, let skProducts = skProducts else {
+            return completion(err ?? IHError(IHErrors.unexpected), nil)
+         }
+         // Convert skProducts to productDetails
+         let productDetails = skProducts
+         .map { skProduct -> IHProductDetails? in
+            do {
+               var data: Dictionary<String, Any> = [:]
+               
+               data["sku"] = skProduct.productIdentifier
+               data["localizedTitle"] = skProduct.localizedTitle
+               data["localizedDescription"] = skProduct.localizedDescription
+               data["price"] = round(skProduct.price.doubleValue * 100) / 100 // Round price with 2 digits precision
+               if #available(iOS 10, *) {
+                  data["currency"] = skProduct.priceLocale.currencyCode
+               }
+               data["localizedPrice"] = skProduct.price.getLocalizedPrice(locale: skProduct.priceLocale)
+               // Get subscription duration (Only available on IOS 11.2+)
+               if #available(iOS 11.2, *), let subscriptionPeriod = skProduct.subscriptionPeriod {
+                  data["subscriptionDuration"] = self.convertToISO8601(subscriptionPeriod.numberOfUnits, subscriptionPeriod.unit)
+               }
+               // Get informations if there is an intro period (Only available on IOS 11.2+)
+               if #available(iOS 11.2, *), let introductoryPrice = skProduct.introductoryPrice {
+                  data["subscriptionIntroPhases"] = [[
+                     "type": introductoryPrice.paymentMode == SKProductDiscount.PaymentMode.freeTrial ? "trial" : "intro",
+                     "price": introductoryPrice.price.doubleValue,
+                     "currency": data["currency"],
+                     "localizedPrice": introductoryPrice.price.getLocalizedPrice(locale: skProduct.priceLocale),
+                     "cycleDuration": self.convertToISO8601(introductoryPrice.subscriptionPeriod.numberOfUnits, introductoryPrice.subscriptionPeriod.unit),
+                     "cycleCount": introductoryPrice.numberOfPeriods,
+                     "payment": introductoryPrice.paymentMode == SKProductDiscount.PaymentMode.payAsYouGo ? "as_you_go" : "upfront"
+                  ]]
+               }
+
+               return try IHProductDetails(data)
+            }
+            catch {
+               return nil
+            }
+         }
+         .compactMap { $0 }
+         // Call completion
+         completion(nil, productDetails)
+      }
+   }
+   
+   /**
+    Get product details
+    */
+   public func getProductDetails(_ sku: String, _ completion: @escaping (IHError?, IHProductDetails?) -> Void) {
+      self.getProductsDetails([sku]) { err, productsDetails in
+         // Search for product
+         let productDetails = productsDetails?.first {item in item.sku == sku}
+         if (productDetails == nil) {
+            return completion(IHError(IHErrors.product_not_available, params: ["sku": sku]), nil)
+         }
+         // Return product
+         completion(nil, productDetails)
+      }
    }
    
    /**
@@ -269,7 +372,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    /**
     Process buy request
     */
-   private func processBuyRequest(_ transaction: SKPaymentTransaction, _ err: IHError?, _ response: IHReceiptTransaction?) {
+   private func processBuyRequest(_ transaction: SKPaymentTransaction, _ err: IHError?, _ receiptTransaction: IHReceiptTransaction?) {
       // Check if the product identifier match
       if (self.buyRequest?.payment.productIdentifier == transaction.payment.productIdentifier) {
          guard let buyRequest = self.buyRequest else {
@@ -277,9 +380,15 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
          }
          // Remove request
          self.buyRequest = nil
-         // Call request callback back to the main thread
-         DispatchQueue.main.async {
-            buyRequest.completion(err, response)
+         // Get product details
+         self.getProductDetails(transaction.payment.productIdentifier) { _, details in
+            if let details = details {
+               receiptTransaction?.setDetails(details)
+            }
+            // Call request callback back to the main thread
+            DispatchQueue.main.async {
+               buyRequest.completion(err, receiptTransaction)
+            }
          }
       }
    }

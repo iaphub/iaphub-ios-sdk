@@ -28,6 +28,8 @@ import StoreKit
    @objc public var subscriptionRenewalProductSku: String?
    // Subscription state
    @objc public var subscriptionState: String?
+   // Subscription period type ("normal", "trial", "intro")
+   @objc public var subscriptionPeriodType: String?
 
    
    required init(_ data: Dictionary<String, Any>) throws {
@@ -63,6 +65,20 @@ import StoreKit
             params: ["purchase": self.purchase as Any]
          )
       }
+      // Set subscription period type and filter intro phases
+      self.subscriptionPeriodType = data["subscriptionPeriodType"] as? String
+      self.filterIntroPhases()
+   }
+   
+   func filterIntroPhases() {
+      var isValid = false
+
+      self.subscriptionIntroPhases = self.subscriptionIntroPhases?.filter({ introPhase in
+         if (!isValid && introPhase.type == self.subscriptionPeriodType) {
+            isValid = true
+         }
+         return isValid
+      })
    }
    
    override public func getDictionary() -> [String: Any] {
@@ -75,11 +91,17 @@ import StoreKit
          "isSubscriptionRenewable": self.isSubscriptionRenewable as Any,
          "subscriptionRenewalProduct": self.subscriptionRenewalProduct as Any,
          "subscriptionRenewalProductSku": self.subscriptionRenewalProductSku as Any,
-         "subscriptionState": self.subscriptionState as Any
+         "subscriptionState": self.subscriptionState as Any,
+         "subscriptionPeriodType": self.subscriptionPeriodType as Any
       ]
 
       data.merge(extraData) { (current, _) in current }
       return data
+   }
+   
+   override public func setDetails(_ details: IHProductDetails) {
+      super.setDetails(details)
+      self.filterIntroPhases()
    }
 
 }

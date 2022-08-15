@@ -31,6 +31,10 @@ Implementing In-app purchases in your app should be a piece of cake!<br/>
 
 4. Follow the instructions below
 
+<br>
+
+⚠ If you're migrating from v2.X.X to v3.X.X, read [this](https://github.com/iaphub/iaphub-ios-sdk/tree/master/guides/migrate-v2-to-v3.md).
+
 ## Start
 Import `Iaphub` and execute the start method in `application(_:didFinishLaunchingWithOptions:)`<br/>
 
@@ -308,7 +312,7 @@ Iaphub.restore({ (err: IHError?) in
 | id | `String` | Product id (From IAPHUB) |
 | type | `String` | Product type (Possible values: 'consumable', 'non_consumable', 'subscription', 'renewable_subscription') |
 | sku | `String` | Product sku (Ex: "membership_tier1") |
-| price | `Decimal = 0` | Price amount (Ex: 12.99) |
+| price | `Double = 0` | Price amount (Ex: 12.99) |
 | currency | `String?` | Price currency code (Ex: "USD") |
 | localizedPrice | `String?` | Localized price (Ex: "$12.99") |
 | localizedTitle | `String?` | Product title (Ex: "Membership") |
@@ -317,12 +321,17 @@ Iaphub.restore({ (err: IHError?) in
 | groupName | `String?` | ⚠ Only available if the product as a group<br>Name of the product group created on IAPHUB (Ex: "premium") |
 | subscriptionPeriodType | `String?` | ⚠ Only available for a subscription<br>Subscription period type (Possible values: 'normal', 'trial', 'intro')<br>If the subscription is active it is the current period otherwise it is the period if the user purchase the subscription |
 | subscriptionDuration | `String?` | ⚠ Only available for a subscription<br> Duration of the subscription cycle specified in the ISO 8601 format (Possible values: 'P1W', 'P1M', 'P3M', 'P6M', 'P1Y') |
-| subscriptionIntroPrice | `Decimal` | ⚠ Only available for a subscription with an introductory price<br>Introductory price amount (Ex: 2.99) |
-| subscriptionIntroLocalizedPrice | `String?` | ⚠ Only available for a subscription with an introductory price<br>Localized introductory price (Ex: "$2.99") |
-| subscriptionIntroPayment | `String?` | ⚠ Only available for a subscription with an introductory price<br>Payment type of the introductory offer (Possible values: 'as_you_go', 'upfront') |
-| subscriptionIntroDuration | `String?` | ⚠ Only available for a subscription with an introductory price<br>Duration of an introductory cycle specified in the ISO 8601 format (Possible values: 'P1W', 'P1M', 'P3M', 'P6M', 'P1Y') |
-| subscriptionIntroCycles | `Int = 0` | ⚠ Only available for a subscription with an introductory price<br>Number of cycles in the introductory offer |
-| subscriptionTrialDuration | `String?` | ⚠ Only available for a subscription with a trial<br>Duration of the trial specified in the ISO 8601 format |
+| subscriptionIntroPhases | `[IHSubscriptionIntroPhase]?` | ⚠ Only available for a subscription<br> Ordered list of the subscription intro phases (intro price, free trial) |
+
+### IHSubscriptionIntroPhase
+| Prop  | Type | Description |
+| :------------ |:---------------:| :-----|
+| type | `String` | Introductory type (Possible values: 'trial', 'intro')  |
+| price | `Double` | Introductory price amount (Ex: 2.99) |
+| currency | `String` | Introductory price currency code (Ex: "USD") |
+| localizedPrice | `String` | Localized introductory price (Ex: "$2.99") |
+| cycleCount | `String` | Number of cycles in the introductory offer |
+| cycleDuration | `String` | Duration of a introductory cycle specified in the ISO 8601 format (Possible values: 'P1W', 'P1M', 'P3M', 'P6M', 'P1Y') |
 
 ### IHActiveProduct (inherit from IHProduct)
 | Prop  | Type | Description |

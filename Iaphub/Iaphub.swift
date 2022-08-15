@@ -177,7 +177,7 @@ import UIKit
             return completion(err, nil)
          }
          // Get product 
-         shared.storekit.getProduct(sku) { err, product in
+         shared.storekit.getSkProduct(sku) { err, product in
             // Check if there is an error
             guard let product = product else {
                return completion(err, nil)
@@ -198,25 +198,7 @@ import UIKit
                }
             }
             // Launch purchase
-            shared.storekit.buy(product, { (err, transaction) in
-               // Check error
-               guard err == nil else {
-                  return completion(err, nil)
-               }
-               // Check transaction
-               guard let transaction = transaction else {
-                  return completion(IHError(IHErrors.unexpected, message: "receipt transaction empty"), nil)
-               }
-               // Look for the product of the receipt transaction
-               shared.storekit.getProduct(transaction.sku, {(err, skProduct) in
-                  // Assign the skProduct of the transaction
-                  if (skProduct != nil) {
-                     transaction.setSKProduct(skProduct!)
-                  }
-                  // Call completion
-                  completion(nil, transaction)
-               })
-            })
+            shared.storekit.buy(product, completion)
          }
       })
    }
@@ -537,7 +519,7 @@ extension Iaphub {
    public class func getProductsForSale() async throws -> [IHProduct] {
       return try await withCheckedThrowingContinuation { continuation in
          Iaphub.getProductsForSale({ (err, products) in
-            if let products = products {
+            if let products = products, err == nil {
                continuation.resume(returning: products)
             }
             else {
@@ -553,7 +535,7 @@ extension Iaphub {
    public class func getActiveProducts(includeSubscriptionStates: [String] = []) async throws -> [IHActiveProduct] {
       return try await withCheckedThrowingContinuation { continuation in
          Iaphub.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates, { (err, products) in
-            if let products = products {
+            if let products = products, err == nil {
                continuation.resume(returning: products)
             }
             else {
@@ -569,7 +551,7 @@ extension Iaphub {
    public class func buy(sku: String, crossPlatformConflict: Bool = true) async throws -> IHReceiptTransaction {
       return try await withCheckedThrowingContinuation { continuation in
          Iaphub.buy(sku: sku, crossPlatformConflict: crossPlatformConflict, { (err, transaction) in
-            if let transaction = transaction {
+            if let transaction = transaction, err == nil {
                continuation.resume(returning: transaction)
             }
             else {

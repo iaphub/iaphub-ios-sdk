@@ -64,7 +64,7 @@ class IaphubTests: XCTestCase {
             let products = params["products"] as? [Dictionary<String, Any>]
             
             if let products = products {
-               if (products[0]["price"] as? Decimal == 1.99 && products[0]["currency"] as? String == "USD") {
+               if (products[0]["price"] as? Double == 1.99 && products[0]["currency"] as? String == "USD") {
                   pricePosted = true
                }
             }

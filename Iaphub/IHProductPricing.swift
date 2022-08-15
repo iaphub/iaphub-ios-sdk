@@ -12,26 +12,26 @@ class IHProductPricing: IHParsable {
    // Product id
    public var id: String
    // Product price
-   public var price: Decimal = 0
-   // Product intro price
-   public var introPrice: Decimal = 0
+   public var price: Double
    // Product currency
    public var currency: String
+   // Product intro price
+   public var introPrice: Double?
 
    required init(_ data: Dictionary<String, Any>) throws {
       guard let id = data["id"] as? String, let price = data["price"] as? Double, let currency = data["currency"] as? String else {
          throw IHError(IHErrors.unexpected, IHUnexpectedErrors.pricing_parsing_failed, params: data);
       }
       self.id = id
-      self.price = Decimal(price)
+      self.price = price
       self.currency = currency
       // Add intro price if defined
       if let introPrice = data["introPrice"] as? Double {
-         self.introPrice = Decimal(introPrice)
+         self.introPrice = introPrice
       }
    }
    
-   init(id: String, price: Decimal, currency: String, introPrice: Decimal = 0) {
+   init(id: String, price: Double, currency: String, introPrice: Double? = nil) {
       self.id = id
       self.price = price
       self.currency = currency
@@ -45,7 +45,7 @@ class IHProductPricing: IHParsable {
          "currency": self.currency as Any
       ]
       // Add only intro price if defined
-      if (self.introPrice != 0) {
+      if (self.introPrice != nil) {
          dic["introPrice"] = self.introPrice as Any
       }
       return dic

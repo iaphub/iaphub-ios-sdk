@@ -106,6 +106,7 @@ import Foundation
          dictionnary["id"] = self.id
          dictionnary["fetchDate"] = IHUtil.dateToIsoString(self.fetchDate)
          dictionnary["pricings"] = self.pricings.map({(pricing) in pricing.getDictionary()})
+         dictionnary["cacheVersion"] = IHConfig.cacheVersion
       }
       return dictionnary
    }
@@ -122,7 +123,7 @@ import Foundation
             guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
                return
             }
-            if let id = json["id"] as? String, id == self.id {
+            if let id = json["id"] as? String, id == self.id,  let cacheVersion = json["cacheVersion"] as? String, cacheVersion == IHConfig.cacheVersion {
                self.fetchDate = IHUtil.dateFromIsoString(json["fetchDate"], failure: { err in
                   IHError(IHErrors.unexpected, IHUnexpectedErrors.date_parsing_failed, message: "issue on fetch date, \(err.localizedDescription)", params: ["fetchDate": json["fetchDate"] as Any])
                })
@@ -267,8 +268,8 @@ import Foundation
       let products = self.productsForSale + self.activeProducts
       let pricings = products
       .map({ (product) -> IHProductPricing? in
-         if (product.price != 0 && product.currency != nil) {
-            return IHProductPricing(id: product.id, price: product.price, currency: product.currency!, introPrice: product.subscriptionIntroPrice)
+         if let currency = product.currency, product.price != 0 {
+            return IHProductPricing(id: product.id, price: product.price, currency: currency, introPrice: product.subscriptionIntroPhases?.first?.price)
          }
          return nil;
       })
@@ -325,28 +326,24 @@ import Foundation
       let products = productsForSale + activeProducts
       let productSkus = Set(products.map({ (product) in product.sku}))
 
-      self.sdk.storekit.getProducts(productSkus, { (err, products) in
+      self.sdk.storekit.getProductsDetails(productSkus, { (err, productsDetails) in
          // Check for error
          guard err == nil else {
             return completion(err)
          }
          // Otherwise assign data to the product
-         products?.forEach({ (skProduct) in
-            // Try to find the product in the products for sale
-            var product = productsForSale.first(where: {$0.sku == skProduct.productIdentifier})
-            // Otherwise try to find the product in the active products
-            if (product == nil) {
-               product = activeProducts.first(where: {$0.sku == skProduct.productIdentifier})
-            }
+         productsDetails?.forEach({ (productDetail) in
+            let product = products.first(where: {$0.sku == productDetail.sku})
+
             // If the product has been found set skProduct
-            product?.setSKProduct(skProduct)
+            product?.setDetails(productDetail)
          })
          // Filter products for sale with no skProduct
          self.productsForSale = productsForSale.filter({ (product) in
-            if (product.skProduct == nil) {
+            if (product.details == nil) {
                IHError(IHErrors.unexpected, IHUnexpectedErrors.product_missing_from_store, message: "(sku: \(product.sku)", params: ["sku": product.sku])
             }
-            return product.skProduct != nil
+            return product.details != nil
          })
          // No need to filter active products
          self.activeProducts = activeProducts
