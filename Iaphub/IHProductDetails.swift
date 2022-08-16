@@ -26,6 +26,9 @@ public class IHProductDetails: NSObject, IHParsable {
    @objc public var subscriptionDuration: String?
    // Subscription intro phases
    @objc public var subscriptionIntroPhases: [IHSubscriptionIntroPhase]?
+   
+   // Data provided to the constructor
+   internal var data: Dictionary<String, Any>
 
    
    required init(_ data: Dictionary<String, Any>) throws {
@@ -34,6 +37,7 @@ public class IHProductDetails: NSObject, IHParsable {
          throw IHError(IHErrors.unexpected, IHUnexpectedErrors.product_parsing_failed, message: "in ProductDetails class", params: data);
       }
       // Assign properties
+      self.data = data
       self.sku = sku;
       self.localizedTitle = data["localizedTitle"] as? String
       self.localizedDescription = data["localizedDescription"] as? String

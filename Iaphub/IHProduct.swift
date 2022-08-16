@@ -36,6 +36,21 @@ import StoreKit
       self.groupName = data["groupName"] as? String
       // Call super init
       try super.init(data)
+      // Filter intro phases with the subscriptionPeriodType property
+      if let subscriptionPeriodType = data["subscriptionPeriodType"] as? String {
+         self.filterIntroPhases(subscriptionPeriodType)
+      }
+   }
+   
+   func filterIntroPhases(_ subscriptionPeriodType: String) {
+      var isValid = false
+
+      self.subscriptionIntroPhases = self.subscriptionIntroPhases?.filter({ introPhase in
+         if (!isValid && introPhase.type == subscriptionPeriodType) {
+            isValid = true
+         }
+         return isValid
+      })
    }
    
    public override func getDictionary() -> [String: Any] {
@@ -55,6 +70,9 @@ import StoreKit
    public override func setDetails(_ details: IHProductDetails) {
       super.setDetails(details)
       self.details = details
+      if let subscriptionPeriodType = self.data["subscriptionPeriodType"] as? String {
+         self.filterIntroPhases(subscriptionPeriodType)
+      }
    }
 
 }

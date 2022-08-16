@@ -70,18 +70,6 @@ import StoreKit
       }
       // Set subscription period type and filter intro phases
       self.subscriptionPeriodType = data["subscriptionPeriodType"] as? String
-      self.filterIntroPhases()
-   }
-   
-   func filterIntroPhases() {
-      var isValid = false
-
-      self.subscriptionIntroPhases = self.subscriptionIntroPhases?.filter({ introPhase in
-         if (!isValid && introPhase.type == self.subscriptionPeriodType) {
-            isValid = true
-         }
-         return isValid
-      })
    }
    
    override public func getDictionary() -> [String: Any] {
@@ -101,11 +89,6 @@ import StoreKit
 
       data.merge(extraData) { (current, _) in current }
       return data
-   }
-   
-   override public func setDetails(_ details: IHProductDetails) {
-      super.setDetails(details)
-      self.filterIntroPhases()
    }
 
 }
