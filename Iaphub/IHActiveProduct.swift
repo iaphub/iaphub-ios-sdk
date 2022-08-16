@@ -22,6 +22,8 @@ import StoreKit
    @objc public var expirationDate: Date?
    // Returns if the subscription will auto renew
    @objc public var isSubscriptionRenewable: Bool = false
+   // If the subscription is shared by a family member (iOS subscriptions only)
+   @objc public var isFamilyShare: Bool = false
    // Subscription product of the next renewal (only defined if different than the current product)
    @objc public var subscriptionRenewalProduct: String?
    // SubscriptionRenewalProduct sku
@@ -54,6 +56,7 @@ import StoreKit
          )
       })
       self.isSubscriptionRenewable = (data["isSubscriptionRenewable"] as? Bool) ?? false
+      self.isFamilyShare = (data["isFamilyShare"] as? Bool) ?? false
       self.subscriptionRenewalProduct = data["subscriptionRenewalProduct"] as? String
       self.subscriptionRenewalProductSku = data["subscriptionRenewalProductSku"] as? String
       self.subscriptionState = data["subscriptionState"] as? String
@@ -89,6 +92,7 @@ import StoreKit
          "platform": self.platform as Any,
          "expirationDate": IHUtil.dateToIsoString(self.expirationDate) as Any,
          "isSubscriptionRenewable": self.isSubscriptionRenewable as Any,
+         "isFamilyShare": self.isFamilyShare as Any,
          "subscriptionRenewalProduct": self.subscriptionRenewalProduct as Any,
          "subscriptionRenewalProductSku": self.subscriptionRenewalProductSku as Any,
          "subscriptionState": self.subscriptionState as Any,
