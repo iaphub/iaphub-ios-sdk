@@ -319,7 +319,6 @@ Iaphub.restore({ (err: IHError?) in
 | localizedDescription | `String?` | Product description (Ex: "Join the community with a membership") |
 | group | `String?` | ⚠ Only available if the product as a group<br>Group id (From IAPHUB) |
 | groupName | `String?` | ⚠ Only available if the product as a group<br>Name of the product group created on IAPHUB (Ex: "premium") |
-| subscriptionPeriodType | `String?` | ⚠ Only available for a subscription<br>Subscription period type (Possible values: 'normal', 'trial', 'intro')<br>If the subscription is active it is the current period otherwise it is the period if the user purchase the subscription |
 | subscriptionDuration | `String?` | ⚠ Only available for a subscription<br> Duration of the subscription cycle specified in the ISO 8601 format (Possible values: 'P1W', 'P1M', 'P3M', 'P6M', 'P1Y') |
 | subscriptionIntroPhases | `[IHSubscriptionIntroPhase]?` | ⚠ Only available for a subscription<br> Ordered list of the subscription intro phases (intro price, free trial) |
 
@@ -345,6 +344,7 @@ Iaphub.restore({ (err: IHError?) in
 | subscriptionRenewalProduct | `String?` | Subscription product id of the next renewal (only defined if different than the current product) |
 | subscriptionRenewalProductSku | `String?` | Subscription product sku of the next renewal |
 | subscriptionState | `String?` | State of the subscription<br>(Possible values: 'active', 'grace_period', 'retry_period', 'paused') |
+| subscriptionPeriodType | `String?` | Current phase type of the subscription<br>(Possible values: 'normal', 'trial', 'intro') |
 
 ### IHReceiptTransaction (inherit from IHActiveProduct)
 | Prop  | Type | Description |
