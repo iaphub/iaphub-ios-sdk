@@ -161,6 +161,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
                // Get subscription duration (Only available on IOS 11.2+)
                if #available(iOS 11.2, *), let subscriptionPeriod = skProduct.subscriptionPeriod {
                   data["subscriptionDuration"] = self.convertToISO8601(subscriptionPeriod.numberOfUnits, subscriptionPeriod.unit)
+                  data["subscriptionIntroPhases"] = []
                }
                // Get informations if there is an intro period (Only available on IOS 11.2+)
                if #available(iOS 11.2, *), let introductoryPrice = skProduct.introductoryPrice {
