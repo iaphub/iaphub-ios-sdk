@@ -167,7 +167,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
                if #available(iOS 11.2, *), let introductoryPrice = skProduct.introductoryPrice {
                   data["subscriptionIntroPhases"] = [[
                      "type": introductoryPrice.paymentMode == SKProductDiscount.PaymentMode.freeTrial ? "trial" : "intro",
-                     "price": introductoryPrice.price.doubleValue,
+                     "price": round(introductoryPrice.price.doubleValue * 100) / 100, // Round price with 2 digits precision
                      "currency": data["currency"],
                      "localizedPrice": introductoryPrice.price.getLocalizedPrice(locale: skProduct.priceLocale),
                      "cycleDuration": self.convertToISO8601(introductoryPrice.subscriptionPeriod.numberOfUnits, introductoryPrice.subscriptionPeriod.unit),
