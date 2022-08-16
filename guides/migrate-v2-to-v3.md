@@ -5,7 +5,7 @@ We changed it in order to have a common API with the Android SDK.
 
 To update the library, update Iaphub in your podfile
 ```
-pod 'Iaphub', '~> 3.0.0'
+pod 'Iaphub', '~> 3.0.1'
 ```
 
 The only major change is that the following properties are removed:
