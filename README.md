@@ -23,13 +23,15 @@ You should spend this precious time building your app!
 
 Implementing In-app purchases in your app should be a piece of cake!<br/>
 
-1. Create an account on [IAPHUB](https://www.iaphub.com)
+1. Create an account on [IAPHUB](https://www.iaphub.com).
 
-2. Add Iaphub to your Podfile `pod 'Iaphub', '~> 3.0.1'`
+2. Add Iaphub to your Podfile `pod 'Iaphub', '~> 3.0.1'`.
 
-3. Run `pod install`
+3. Run `pod install`.
 
-4. Follow the instructions below
+4. Make sure the **In-App purchases capability** of your ios project is enabled on XCode
+
+5. Read our complete guide to [set up your app](https://www.iaphub.com/docs/getting-started/set-up-app/).
 
 <br>
 
