@@ -229,6 +229,14 @@ import UIKit
       // Return products
       user.getProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
    }
+   
+   /**
+    Show manage subscriptions
+    */
+   @objc public class func showManageSubscriptions(_ completion: @escaping (IHError?) -> Void) {
+      // Call StoreKit method
+      shared.storekit.showManageSubscriptions(completion)
+   }
 
    /**
     Present code redemption
@@ -492,6 +500,22 @@ extension Iaphub {
    public class func restore() async throws {
       return try await withCheckedThrowingContinuation { continuation in
          Iaphub.restore({ (err) in
+            if (err != nil) {
+               continuation.resume(throwing: err! as Error)
+            }
+            else {
+               continuation.resume()
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await showManageSubscriptions
+    */
+   public class func showManageSubscriptions() async throws {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.showManageSubscriptions({ (err) in
             if (err != nil) {
                continuation.resume(throwing: err! as Error)
             }

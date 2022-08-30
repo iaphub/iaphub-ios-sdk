@@ -84,6 +84,41 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    }
    
    /**
+    Show manage subscriptions
+    */
+   public func showManageSubscriptions(_ completion: @escaping (IHError?) -> Void) {
+      // On iOS 15+, try to open the StoreKit2 subscriptions modal
+      if #available(iOS 15.0, *) {
+         if let currentWindowScene = IHUtil.getCurrentWindowScene() {
+            // Do not wait the callback that is called when the modal is dismissed
+            _ = Task.init {
+               do {
+                   try await AppStore.showManageSubscriptions(in: currentWindowScene)
+               }
+               catch {
+                  
+               }
+            }
+            return completion(nil)
+         }
+      }
+      // Otherwise redirect to app store subscriptions page
+      if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
+          if UIApplication.shared.canOpenURL(url) {
+             if #available(iOS 10, *) {
+                UIApplication.shared.open(url, options: [:])
+             }
+             else {
+                UIApplication.shared.openURL(url)
+             }
+             return completion(nil)
+          }
+      }
+      // If it fails return an error
+      completion(IHError(IHErrors.manage_subscriptions_unavailable))
+   }
+   
+   /**
     Get SK product
     */
    public func getSkProduct(_ sku: String, _ completion: @escaping (IHError?, SKProduct?) -> Void) {

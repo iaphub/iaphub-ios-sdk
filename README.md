@@ -306,6 +306,18 @@ Iaphub.restore({ (err: IHError?) in
 })
 ```
 
+## Show manage subscriptions
+Call the ``showManageSubscriptions`` to display the App Store manage subscriptions page.<br/><br/>
+ℹ️ The user will be redirected to the App Store App on iOS < 15.0, otherwise a modal will appear.<br/>
+
+```swift
+Iaphub.showManageSubscriptions({ (err: IHError?) in
+  if (err != nil) {
+    self.openAlert("Couldn't redirect to the app store, please check your subscriptions directly from the App Store App")
+  }
+})
+```
+
 ## Properties
 
 ### IHProduct

@@ -40,11 +40,20 @@ struct StoreView: View {
          }
          return Alert(title: Text(iap.alertMessage), dismissButton: button)
       }
-      Button(action: {
-         iap.restore()
-      }) {
-         Text("Restore In-app purchases")
+      HStack {
+         Button(action: {
+            iap.restore()
+         }) {
+            Text("Restore In-app purchases")
+         }
+         Divider()
+         Button(action: {
+            iap.showManageSubscriptions()
+         }) {
+            Text("Manage subscriptions")
+         }
       }
+      .frame(width: nil, height: 50, alignment: .bottom)
    }
 }
 

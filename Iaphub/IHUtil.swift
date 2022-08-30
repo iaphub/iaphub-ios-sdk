@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 class IHUtil {
    
@@ -255,5 +256,20 @@ class IHUtil {
       formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
       
       return formatter.string(from: date)
+   }
+   
+   /**
+    Get current window scene
+   */
+   @available(iOS 15.0, *)
+   static func getCurrentWindowScene() -> UIWindowScene? {
+      let application = UIApplication.value(forKey: "sharedApplication") as? UIApplication
+      
+      if let application = application {
+         let scenes = application.connectedScenes.filter { $0.activationState == .foregroundActive }
+
+         return scenes.first as? UIWindowScene
+      }
+      return nil
    }
 }

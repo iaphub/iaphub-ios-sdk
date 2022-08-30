@@ -124,4 +124,12 @@ class IAP: ObservableObject {
          }
       })
    }
+   
+   func showManageSubscriptions() {
+      Iaphub.showManageSubscriptions({ (err) in
+         if (err != nil) {
+            self.openAlert("Couldn't redirect to the app store, please check your subscriptions directly from the App Store app")
+         }
+      })
+   }
 }
