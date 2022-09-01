@@ -87,7 +87,9 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     Show manage subscriptions
     */
    public func showManageSubscriptions(_ completion: @escaping (IHError?) -> Void) {
-      // On iOS 15+, try to open the StoreKit2 subscriptions modal
+      // Commented until we fix the error: cannot find 'AppStore' in scope
+      // We would need a macro at compilation to only execute the code on iOS 15+ (if #available doesn't work)
+      /*
       if #available(iOS 15.0, *) {
          if let currentWindowScene = IHUtil.getCurrentWindowScene() {
             // Do not wait the callback that is called when the modal is dismissed
@@ -102,7 +104,8 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
             return completion(nil)
          }
       }
-      // Otherwise redirect to app store subscriptions page
+      */
+      // Redirect to app store subscriptions page
       if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
           if UIApplication.shared.canOpenURL(url) {
              if #available(iOS 10, *) {
