@@ -107,18 +107,24 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       */
       // Redirect to app store subscriptions page
       if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
-          if UIApplication.shared.canOpenURL(url) {
-             if #available(iOS 10, *) {
-                UIApplication.shared.open(url, options: [:])
+         // canOpenURL & open must be executed on the main thread
+         DispatchQueue.main.async {
+             if UIApplication.shared.canOpenURL(url) {
+                if #available(iOS 10, *) {
+                   UIApplication.shared.open(url, options: [:])
+                }
+                else {
+                   UIApplication.shared.openURL(url)
+                }
+                return completion(nil)
              }
-             else {
-                UIApplication.shared.openURL(url)
-             }
-             return completion(nil)
-          }
+            // If it fails return an error
+            completion(IHError(IHErrors.manage_subscriptions_unavailable))
+         }
       }
-      // If it fails return an error
-      completion(IHError(IHErrors.manage_subscriptions_unavailable))
+      else {
+         completion(IHError(IHErrors.manage_subscriptions_unavailable))
+      }
    }
    
    /**
