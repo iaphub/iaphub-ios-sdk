@@ -71,6 +71,10 @@ class IHLocalizedError: LocalizedError {
          case .storeProductNotAvailable:
             err = IHErrors.product_not_available
             break
+         case .paymentNotAllowed:
+            err = IHErrors.billing_unavailable
+            message = "the user is not allowed to process payments"
+            break
          case .cloudServiceNetworkConnectionFailed:
             err = IHErrors.network_error
             suberr = IHNetworkErrors.storekit_request_failed
@@ -78,7 +82,7 @@ class IHLocalizedError: LocalizedError {
          default:
             err = IHErrors.unexpected
             suberr = IHUnexpectedErrors.storekit
-            message  = error.localizedDescription
+            message = "code: \(error.code.rawValue), description: \(error.localizedDescription)"
             break
       }
       

@@ -20,7 +20,7 @@ public enum IHErrors : String, IHErrorProtocol {
    case unexpected = "An unexpected error has happened"
    case network_error = "The remote server request failed"
    case server_error = "The remote server returned an error"
-   case billing_unavailable = "The billing is unavailable (An iPhone can be restricted from accessing the Apple App Store)"
+   case billing_unavailable = "The billing is unavailable"
    case anonymous_purchase_not_allowed = "Anonymous purchase are not allowed, identify user using the login method or enable the anonymous purchase option"
    case user_cancelled = "The purchase has been cancelled by the user"
    case deferred_payment = "The payment has been deferred (transaction pending, its final status is pending external action)"
