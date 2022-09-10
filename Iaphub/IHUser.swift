@@ -126,6 +126,11 @@ import Foundation
                if (crossPlatformConflict && conflictedSubscription != nil) {
                   return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
                }
+               // Check if the product is already going to be replaced on next renewal date
+               let replacedProduct = self.activeProducts.first(where: {$0.subscriptionRenewalProductSku == sku && $0.subscriptionState == "active"})
+               if (replacedProduct != nil) {
+                  return completion(IHError(IHErrors.product_change_next_renewal, params: ["sku": sku]), nil)
+               }
             }
             // Launch purchase
             self.sdk.storekit.buy(product, completion)

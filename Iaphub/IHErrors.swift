@@ -31,6 +31,7 @@ public enum IHErrors : String, IHErrorProtocol {
    case receipt_processing = "Receipt is currently processing"
    case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
    case product_already_purchased = "Product already purchased, it is already an active product of the user"
+   case product_change_next_renewal = "The product will be changed on the next renewal date"
    case transaction_not_found = "Transaction not found, the product sku wasn't in the receipt, the purchase failed"
    case user_conflict = "The transaction is successful but it belongs to a different user, a restore might be needed"
    case code_redemption_unavailable = "Presenting the code redemption is not available (only available on iOS 14+)"

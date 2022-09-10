@@ -362,7 +362,7 @@ import UIKit
                            // If we didn't find any transaction, we have an error
                            if (transaction == nil) {
                               // Check if it is because of a subscription already active
-                              let oldTransaction = receiptResponse.oldTransactions?.first(where: { $0.sku == receipt.sku})
+                              let oldTransaction = receiptResponse.findTransactionBySku(sku: receipt.sku, filter: "old")
                               if ((oldTransaction?.type == "non_consumable") || (oldTransaction?.subscriptionState != nil && oldTransaction?.subscriptionState != "expired")) {
                                  // Check if the transaction belongs to a different user
                                  if (oldTransaction?.user != nil && user.iaphubId != nil && oldTransaction?.user != user.iaphubId) {
@@ -372,9 +372,17 @@ import UIKit
                                     error = IHError(IHErrors.product_already_purchased, params: ["sku": receipt.sku])
                                  }
                               }
-                              // Otherwise it means the product sku wasn't in the receipt
+                              // Check for other errors
                               else {
-                                 error = IHError(IHErrors.transaction_not_found, params: ["sku": receipt.sku])
+                                 // Check it could be because the subscription is already changing on next renewal date
+                                 let oldTransactionWithRenewalSku = receiptResponse.findTransactionBySku(sku: receipt.sku, filter: "old", useSubscriptionRenewalProductSku: true)
+                                 if (oldTransactionWithRenewalSku != nil) {
+                                    error = IHError(IHErrors.product_change_next_renewal, params: ["sku": receipt.sku])
+                                 }
+                                 // Otherwise it means the product sku wasn't in the receipt
+                                 else {
+                                    error = IHError(IHErrors.transaction_not_found, params: ["sku": receipt.sku])
+                                 }
                               }
                            }
                            // If we have a transaction check that it belongs to the same user

@@ -134,7 +134,7 @@ class IHLocalizedError: LocalizedError {
          return
       }
       // Ignore some errors when sending a log isn't necessary
-      if (["user_cancelled"].contains(self.code)) {
+      if (["user_cancelled", "product_change_next_renewal"].contains(self.code)) {
          return
       }
       // Check rate limit

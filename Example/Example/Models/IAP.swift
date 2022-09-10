@@ -63,6 +63,9 @@ class IAP: ObservableObject {
             else if (err.code == "billing_unavailable") {
                return self.openAlert("In-app purchase not allowed")
             }
+            else if (err.code == "product_change_next_renewal") {
+               return self.openAlert("The product will be changed on the next renewal date")
+            }
             // The product has already been bought but it's owned by a different user, restore needed to transfer it to this user
             else if (err.code == "product_owned_different_user") {
                return self.openAlert("You already purchased this product but it is currently used by a different account, restore your purchases to transfer it to this account")
