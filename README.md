@@ -25,7 +25,7 @@ Implementing In-app purchases in your app should be a piece of cake!<br/>
 
 1. Create an account on [IAPHUB](https://www.iaphub.com).
 
-2. Add Iaphub to your Podfile `pod 'Iaphub', '~> 3.1.2'`.
+2. Add Iaphub to your Podfile `pod 'Iaphub', '~> 3.1.3'`.
 
 3. Run `pod install`.
 
