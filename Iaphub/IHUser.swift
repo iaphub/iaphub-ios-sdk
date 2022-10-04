@@ -370,7 +370,10 @@ import Foundation
          IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "active product, " + err.localizedDescription, params: ["item": item as Any])
       }
       let products = productsForSale + activeProducts
-      let productSkus = Set(products.map({ (product) in product.sku}))
+      let productSkus = Set(
+         products.map({ (product) in product.sku}) // Extract sku
+         .filter({(sku) in sku != ""}) // Filter empty sku (could happen with an active product from another platform)
+      )
 
       self.sdk.storekit.getProductsDetails(productSkus, { (err, productsDetails) in
          // Check for error

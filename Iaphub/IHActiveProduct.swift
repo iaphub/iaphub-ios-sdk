@@ -35,6 +35,11 @@ import StoreKit
 
    
    required init(_ data: Dictionary<String, Any>) throws {
+      var data = data
+      // The sku could be empty if the active product comes from a different platform, update it to an empty string to avoid an error
+      if (data["sku"] as? String == nil) {
+         data["sku"] = ""
+      }
       try super.init(data)
       self.purchase = data["purchase"] as? String
       self.purchaseDate = IHUtil.dateFromIsoString(data["purchaseDate"], failure: { err in

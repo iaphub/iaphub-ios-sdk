@@ -307,6 +307,19 @@ class IaphubTests: XCTestCase {
                      "subscriptionPeriodType": "normal",
                      "isSubscriptionRenewable": true,
                      "isSubscriptionPaused": false
+                  ],
+                  [
+                     "id": "21781dff9bf02f0c6d32c5a8",
+                     "type": "renewable_subscription",
+                     "purchase": "6e517bdd0313c56f11e7faz9",
+                     "purchaseDate": "2021-04-22T01:34:40.462Z",
+                     "platform": "android",
+                     "isFamilyShare": false,
+                     "expirationDate": "2023-05-22T01:34:40.462Z",
+                     "subscriptionState": "active",
+                     "subscriptionPeriodType": "normal",
+                     "isSubscriptionRenewable": true,
+                     "isSubscriptionPaused": false
                   ]
                ]
             ]
@@ -317,12 +330,14 @@ class IaphubTests: XCTestCase {
       Iaphub.shared.user?.fetchDate = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 60 * 60 * 25)
       
       let activeProducts = try await Iaphub.getActiveProducts()
-      XCTAssertEqual(activeProducts.count, 1)
+      XCTAssertEqual(activeProducts.count, 2)
       XCTAssertEqual(activeProducts[0].sku, "unknown_subscription")
       XCTAssertEqual(activeProducts[0].localizedTitle, nil)
+      XCTAssertEqual(activeProducts[1].sku, "")
+      XCTAssertEqual(activeProducts[1].localizedTitle, nil)
       
       let allActiveProducts = try await Iaphub.getActiveProducts(includeSubscriptionStates: ["retry_period", "paused"])
-      XCTAssertEqual(allActiveProducts.count, 2)
+      XCTAssertEqual(allActiveProducts.count, 3)
       XCTAssertEqual(allActiveProducts[0].localizedTitle, "Renewable subscription")
       XCTAssertEqual(allActiveProducts[1].localizedTitle, nil)
    }
