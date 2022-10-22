@@ -122,6 +122,13 @@ import UIKit
       // Log in user
       user.login(userId, completion);
    }
+   
+   /**
+    Get user id
+    */
+   @objc public class func getUserId() -> String? {
+      return shared.user?.id
+   }
 
    /**
     Log out

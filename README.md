@@ -120,6 +120,14 @@ Iaphub.login(userId: "3e4890f6c72fc971cf46db5d", { (err: IHError?) in
 });
 ```
 
+## Get user ID
+Call the `getUserId` method to get the user id of the logged user.<br/>
+If no user is logged the anonymous user id will be returned (prefixed with 'a:').
+
+```swift
+let userId = Iaphub.getUserId()
+```
+
 ## Logout
 Call the `logout` method to log the user out.<br/>
 The user will switch back to his anonymous user id (prefixed with 'a:').<br/>
