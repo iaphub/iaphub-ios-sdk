@@ -594,7 +594,8 @@ import Foundation
          return completion(nil)
       }
       // Detect if we should call the API to update the id
-      let shouldCallApi = self.isAnonymous() && self.fetchDate != nil
+      let shouldCallApi = self.isAnonymous()
+      let currentUserId = self.id
       // Update id
       self.id = userId
       // Reset user
@@ -604,16 +605,8 @@ import Foundation
          guard let api = self.api else {
             return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "login failed"))
          }
-         api.login(userId, { (err) in
-            // Check for error
-            guard err == nil else {
-               // Ignore error if user not found or already authenticated
-               if (["user_not_found", "user_authenticated"].contains(err?.code)) {
-                  return completion(nil)
-               }
-               return completion(err)
-            }
-            // Call completion
+         api.login(currentUserId: currentUserId, newUserId: userId, { (_) in
+            // Ignore error and call completion (if the login couldn't be called for any reason and the purchases were not transferred the user can still do a restore)
             completion(nil)
          })
       }

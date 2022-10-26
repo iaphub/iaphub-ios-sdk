@@ -52,11 +52,11 @@ class IHAPI {
    /**
     Login
    */
-   public func login(_ userId: String, _ completion: @escaping (IHError?) -> Void) {
+   public func login(currentUserId: String, newUserId: String, _ completion: @escaping (IHError?) -> Void) {
       self.network.send(
          type: "POST",
-         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/login",
-         params: ["userId": userId]
+         route: "/app/\(self.user.sdk.appId)/user/\(currentUserId)/login",
+         params: ["userId": newUserId]
       ) {(err, data) -> Void in
          completion(err);
       }
