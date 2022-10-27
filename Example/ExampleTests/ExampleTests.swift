@@ -35,6 +35,8 @@ class IaphubTestsDelegate: NSObject, IaphubDelegate {
    
 }
 
+var iaphubStarted = false
+
 @available(iOS 14.0, *)
 class IaphubTests: XCTestCase {
    
@@ -47,10 +49,13 @@ class IaphubTests: XCTestCase {
       self.testSession.clearTransactions()
       self.delegate = IaphubTestsDelegate()
       Iaphub.delegate = self.delegate
-      Iaphub.start(
-         appId: "61718bfd9bf07f0c7d2357d1",
-         apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3"
-      )
+      if (iaphubStarted == false) {
+         iaphubStarted = true
+         Iaphub.start(
+            appId: "61718bfd9bf07f0c7d2357d1",
+            apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3"
+         )
+      }
       Iaphub.shared.logs = false
    }
 
