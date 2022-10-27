@@ -77,7 +77,7 @@ import UIKit
          shared.sdkVersion = IHConfig.sdkVersion + "/" + sdkVersion;
       }
       // Initialize user
-      if (shared.user == nil || (oldAppId != appId) || (userId != nil && shared.user?.id != userId)) {
+      if (shared.user == nil || (oldAppId != appId) || (shared.user?.id != userId)) {
          shared.user = IHUser(id: userId, sdk: shared, onUserUpdate: shared.onUserUpdate)
       }
       // Otherwise reset user cache
