@@ -16,7 +16,7 @@ class IHConfig {
    // SDK platform
    static var sdk = "ios"
    // SDK version
-   static var sdkVersion = "3.1.6"
+   static var sdkVersion = "3.1.7"
    // Cache version (Increment it when cache needs to be reset because of a format change)
    static var cacheVersion = "1"
 }
