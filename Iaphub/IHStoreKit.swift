@@ -36,6 +36,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
    var failedTransactionQueue: IHQueue? = nil
    var resumeQueuesTimer: Timer? = nil
    var resumeQueuesImmediately: Bool = false
+   var restoreTimer: Timer? = nil
    var lastReceipt: IHReceipt? = nil
    var isObserving = false
    var isPaused = false
@@ -283,7 +284,11 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       if (self.restoreRequest != nil) {
          return completion(IHError(IHErrors.restore_processing))
       }
+      // Save completion handler
       self.restoreRequest = completion;
+      // Add restore timeout of 60 seconds
+      self.restoreTimer = Timer.scheduledTimer(timeInterval: 60, target: self, selector: #selector(self.triggerRestoreTimeout), userInfo: nil, repeats: false)
+      // Launch restore
       SKPaymentQueue.default().restoreCompletedTransactions()
    }
    
@@ -539,6 +544,20 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       }
    }
    
+   /**
+    Trigger restore timeout
+    */
+   @objc private func triggerRestoreTimeout() {
+      guard let restoreRequest = self.restoreRequest else {
+         return;
+      }
+      self.restoreRequest = nil
+      // Call request callback back to the main thread
+      DispatchQueue.main.async {
+         restoreRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.restore_timeout));
+      }
+   }
+   
    /***************************** SKProductsRequestDelegate ******************************/
    
    /**
@@ -644,6 +663,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       guard let restoreRequest = self.restoreRequest else {
          return;
       }
+      self.restoreTimer?.invalidate()
       self.restoreRequest = nil
       // Call request callback back to the main thread
       DispatchQueue.main.async {
@@ -663,6 +683,7 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       guard let restoreRequest = self.restoreRequest else {
          return;
       }
+      self.restoreTimer?.invalidate()
       self.restoreRequest = nil
       // Get receipt token
       let receiptToken = self.getReceiptToken()
