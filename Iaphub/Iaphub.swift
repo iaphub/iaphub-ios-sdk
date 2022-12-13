@@ -12,6 +12,7 @@ import UIKit
 @objc public protocol IaphubDelegate: AnyObject {
     
    @objc optional func didReceiveBuyRequest(sku: String)
+   @objc optional func didReceiveDeferredPurchase(transaction: IHReceiptTransaction)
    @objc optional func didReceiveUserUpdate()
    @objc optional func didProcessReceipt(err: IHError?, receipt: IHReceipt?)
    @objc optional func didReceiveError(err: IHError)
@@ -51,6 +52,7 @@ import UIKit
     - parameter apiKey: The (client) api key is available on the settings page of your app
     - parameter userId: The id of the user
     - parameter allowAnonymousPurchase: If purchase without being logged in are allowed
+    - parameter enableDeferredPurchaseListener: If enabled the didReceiveDeferredPurchase event will be triggered (true by default)
     - parameter environment: App environment ("production" by default)
     - parameter sdk:Parent sdk using the IAPHUB IOS SDK ('react_native', 'flutter', 'cordova')
     - parameter sdkVersion:Parent sdk version
@@ -60,6 +62,7 @@ import UIKit
       apiKey: String,
       userId: String? = nil,
       allowAnonymousPurchase: Bool = false,
+      enableDeferredPurchaseListener: Bool = true,
       environment: String = "production",
       sdk: String = "",
       sdkVersion: String = "")
@@ -77,8 +80,14 @@ import UIKit
          shared.sdkVersion = IHConfig.sdkVersion + "/" + sdkVersion;
       }
       // Initialize user
-      if (shared.user == nil || (oldAppId != appId) || (shared.user?.id != userId)) {
-         shared.user = IHUser(id: userId, sdk: shared, onUserUpdate: shared.onUserUpdate)
+      if (shared.user == nil || (oldAppId != appId) || (shared.user?.id != userId) || (shared.user?.enableDeferredPurchaseListener != enableDeferredPurchaseListener)) {
+         shared.user = IHUser(
+            id: userId,
+            sdk: shared,
+            enableDeferredPurchaseListener: enableDeferredPurchaseListener,
+            onUserUpdate: shared.onUserUpdate,
+            onDeferredPurchase: shared.onDeferredPurchase
+         )
       }
       // Otherwise reset user cache
       else {
@@ -184,20 +193,20 @@ import UIKit
    /**
     Restore
     */
-   @objc public class func restore(_ completion: @escaping (IHError?) -> Void) {
+   @objc public class func restore(_ completion: @escaping (IHError?, IHRestoreResponse?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "restore failed"))
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "restore failed"), nil)
       }
       // Check if restore currently processing
       if (shared.isRestoring) {
-         return completion(IHError(IHErrors.restore_processing))
+         return completion(IHError(IHErrors.restore_processing), nil)
       }
       // Launch restore
       shared.isRestoring = true
-      user.restore({ (err) in
+      user.restore({ (err, response) in
          shared.isRestoring = false
-         completion(err)
+         completion(err, response)
       })
    }
 
@@ -264,10 +273,17 @@ import UIKit
    /***************************** PRIVATE ******************************/
    
    /**
-    Triggered when there is an user update
+    Triggered when a user update is detected
    */
    private func onUserUpdate() {
       Self.delegate?.didReceiveUserUpdate?()
+   }
+   
+   /**
+    Triggered when a deferred purchase is detected
+   */
+   private func onDeferredPurchase(transaction: IHReceiptTransaction) {
+      Self.delegate?.didReceiveDeferredPurchase?(transaction: transaction)
    }
    
    /**
@@ -512,14 +528,14 @@ extension Iaphub {
    /**
     Async/await restore
     */
-   public class func restore() async throws {
+   public class func restore() async throws -> IHRestoreResponse {
       return try await withCheckedThrowingContinuation { continuation in
-         Iaphub.restore({ (err) in
-            if (err != nil) {
-               continuation.resume(throwing: err! as Error)
+         Iaphub.restore({ (err, response) in
+            if let response = response, err == nil {
+               continuation.resume(returning: response)
             }
             else {
-               continuation.resume()
+               continuation.resume(throwing: err! as Error)
             }
          })
       }

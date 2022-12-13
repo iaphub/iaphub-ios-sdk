@@ -27,14 +27,20 @@ import Foundation
    var sdk: Iaphub
    // API
    var api: IHAPI?
-   // Event when the user is updated
-   var onUserUpdate: () -> Void
+   // Event triggered when the user is updated
+   var onUserUpdate: (() -> Void)?
+   // Event triggered on a deferred purchase
+   var onDeferredPurchase: ((IHReceiptTransaction) -> Void)? = nil
+   // Restored deferred purchases (recorded during restore instead of calling onDeferredPurchase event)
+   var restoredDeferredPurchases: [IHReceiptTransaction] = []
    // Fetch requests
    var fetchRequests: [((IHError?, Bool) -> Void)] = []
    // Indicates if the user is currently being fetched
    var isFetching: Bool = false
    // Indicates the user is posting tags
    var isPostingTags: Bool = false
+   // Indicates the user is restoring purchases
+   var isRestoring: Bool = false
    // Indicates the user is initialized
    var isInitialized: Bool = false
    // Indicates if the user needs to be fetched
@@ -43,8 +49,10 @@ import Foundation
    var receiptPostDate: Date? = nil
    // Latest date an update has been made
    var updateDate: Date? = nil
+   // If the deferred purchase events should be consumed
+   var enableDeferredPurchaseListener: Bool = true
 
-   init(id: String?, sdk: Iaphub, onUserUpdate: @escaping () -> Void) {
+   init(id: String?, sdk: Iaphub, enableDeferredPurchaseListener: Bool = true, onUserUpdate: (() -> Void)?, onDeferredPurchase: ((IHReceiptTransaction) -> Void)?) {
       // If id defined use it
       if let userId = id {
          self.id = userId
@@ -54,7 +62,9 @@ import Foundation
          self.id = IHUser.getAnonymousId()
       }
       self.sdk = sdk
+      self.enableDeferredPurchaseListener = enableDeferredPurchaseListener
       self.onUserUpdate = onUserUpdate
+      self.onDeferredPurchase = onDeferredPurchase
       super.init()
       self.api = IHAPI(user: self)
    }
@@ -271,7 +281,7 @@ import Foundation
             // Only mark as updated for the first request
             if (isUpdated == true) {
                isUpdated = false
-               self.onUserUpdate()
+               self.onUserUpdate?()
             }
          })
       }
@@ -369,10 +379,15 @@ import Foundation
       let activeProducts = IHUtil.parseItems(data: data["activeProducts"], type: IHActiveProduct.self) { err, item in
          IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "active product, " + err.localizedDescription, params: ["item": item as Any])
       }
+      let events = IHUtil.parseItems(data: data["events"], type: IHEvent.self, allowNull: true) { err, item in
+         IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "event, " + err.localizedDescription, params: ["item": item as Any])
+      }
       let products = productsForSale + activeProducts
       let productSkus = Set(
-         products.map({ (product) in product.sku}) // Extract sku
-         .filter({(sku) in sku != ""}) // Filter empty sku (could happen with an active product from another platform)
+         // Extract product sku
+         (products.map({ (product) in product.sku}) + events.map({ (event) in event.transaction.sku}))
+         // Filter empty sku (could happen with an active product from another platform)
+         .filter({(sku) in sku != ""})
       )
 
       self.sdk.storekit.getProductsDetails(productSkus, { (err, productsDetails) in
@@ -386,6 +401,12 @@ import Foundation
 
             // If the product has been found set skProduct
             product?.setDetails(productDetail)
+            // Same for events
+            events.forEach { event in
+               if (event.transaction.sku == productDetail.sku) {
+                  event.transaction.setDetails(productDetail)
+               }
+            }
          })
          // Filter products for sale with no skProduct
          self.productsForSale = productsForSale.filter({ (product) in
@@ -400,9 +421,27 @@ import Foundation
          self.iaphubId = data["id"] as? String
          // Mark needsFetch as false
          self.needsFetch = false
+         // Process events
+         self.processEvents(events)
          // Call completion
          completion(nil)
       })
+   }
+   
+   /**
+    Update user with data
+   */
+   func processEvents(_ events: [IHEvent]) {
+      events.forEach { event in
+         if (event.type == "purchase" && event.tags.contains("deferred")) {
+            if (self.isRestoring) {
+               self.restoredDeferredPurchases.append(event.transaction)
+            }
+            else {
+               self.onDeferredPurchase?(event.transaction)
+            }
+         }
+      }
    }
    
    /**
@@ -661,14 +700,35 @@ import Foundation
    /**
     Restore
    */
-   func restore(_ completion: @escaping (IHError?) -> Void) {
+   func restore(_ completion: @escaping (IHError?, IHRestoreResponse?) -> Void) {
+      // Reinitialize restoredDeferredPurchases array
+      self.restoredDeferredPurchases = []
+      // Mark as restoring
+      self.isRestoring = true
       // Launch restore
       self.sdk.storekit.restore({ (err) in
          // Update updateDate
          self.updateDate = Date()
+         // Save old active products
+         let oldActiveProducts = self.activeProducts
          // Refresh user
          self.refresh(interval: 0, force: true, { _, _, _ in
-            completion(err)
+            let newPurchases = self.restoredDeferredPurchases
+            let transferredActiveProducts = self.activeProducts.filter { newActiveProduct in
+               let isInOldActiveProducts = (oldActiveProducts.first { oldActiveProduct in oldActiveProduct.sku == newActiveProduct.sku}) != nil
+               let isInNewPurchases = (newPurchases.first { newPurchase in newPurchase.sku == newActiveProduct.sku}) != nil
+               
+               return !isInOldActiveProducts && !isInNewPurchases
+            }
+            // Call completion
+            if (err == nil || (newPurchases.count > 0 || transferredActiveProducts.count > 0)) {
+               completion(nil, IHRestoreResponse(newPurchases: newPurchases, transferredActiveProducts: transferredActiveProducts))
+            }
+            else {
+               completion(err, nil)
+            }
+            // Mark restoring is done
+            self.isRestoring = false
          })
       })
    }

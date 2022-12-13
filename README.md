@@ -82,6 +82,11 @@ extension AppDelegate: IaphubDelegate {
     // When using the login/logout method, the user is reset, meaning this event won't be called until the user has been loaded first using the getProductsForSale/getActiveProducts methods
   }
 
+  func didReceiveDeferredPurchase(transaction: IHReceiptTransaction) {
+    // Called when a deferred purchase has been processed
+    // A deferred purchase is a purchase processed 'outside' of the buy method 
+  }
+
   func didReceiveError(err: IHError) {
     // Called when IAPHUB has detected an error
     // It can be interesting to log unexpected errors

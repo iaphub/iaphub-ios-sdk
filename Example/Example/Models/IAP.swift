@@ -118,7 +118,7 @@ class IAP: ObservableObject {
    }
    
    func restore() {
-      Iaphub.restore({ (err) in
+      Iaphub.restore({ (err, response) in
          if (err != nil) {
             self.openAlert("Restore failed, please retry later or contact the support (support@myapp.com)")
          }

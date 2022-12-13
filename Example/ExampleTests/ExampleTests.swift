@@ -12,12 +12,17 @@ import StoreKitTest
 class IaphubTestsDelegate: NSObject, IaphubDelegate {
    
    var buyRequests: [String] = []
+   var deferredPurchases: [IHReceiptTransaction] = []
    var userUpdateCount = 0
    var processReceiptCount = 0
    var errorCount = 0
    
    func didReceiveBuyRequest(sku: String) {
       self.buyRequests.append(sku)
+   }
+
+   func didReceiveDeferredPurchase(transaction: IHReceiptTransaction) {
+      self.deferredPurchases.append(transaction)
    }
     
    func didReceiveUserUpdate() {
@@ -388,6 +393,77 @@ class IaphubTests: XCTestCase {
       Iaphub.getProductsForSale(callback)
       waitForExpectations(timeout: 5, handler: nil)
       XCTAssertEqual(count, 6)
+   }
+   
+   func test12_consumeDeferredPurchase() async throws {
+      var requestCount = 0
+      
+      // The deferred purchase events should be consumed by default
+      Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
+         if (type == "GET" && route.contains("/user")) {
+            requestCount += 1
+            XCTAssertEqual(params["deferredPurchase"] as? String, nil)
+            return [
+               "productsForSale": [],
+               "activeProducts": []
+            ]
+         }
+         return nil
+      }
+      Iaphub.shared.user?.fetchDate = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 60 * 60 * 25)
+      try await Iaphub.getActiveProducts()
+      XCTAssertEqual(requestCount, 1)
+      
+      // And should be disabled if the option is specified
+      Iaphub.start(appId: "61718bfd9bf07f0c7d2357d1", apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3", enableDeferredPurchaseListener: false)
+      Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
+         if (type == "GET" && route.contains("/user")) {
+            requestCount += 1
+            XCTAssertEqual(params["deferredPurchase"] as? String, "false")
+            return [
+               "productsForSale": [],
+               "activeProducts": []
+            ]
+         }
+         return nil
+      }
+      try await Iaphub.getActiveProducts()
+      XCTAssertEqual(requestCount, 2)
+   }
+   
+   func test13_getDeferredPurchaseEvent() async throws {
+      Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
+         if (type == "GET" && route.contains("/user")) {
+            return [
+               "productsForSale": [],
+               "activeProducts": [],
+               "events": [
+                  [
+                     "type": "purchase",
+                     "tags": ["deferred"],
+                     "transaction": [
+                        "id": "21781dff9bf02f0c6d32c5a7",
+                        "type": "consumable",
+                        "purchase": "6e517bdd0313c56f11e7faz8",
+                        "purchaseDate": "2022-06-22T01:34:40.462Z",
+                        "platform": "ios",
+                        "isFamilyShare": false,
+                        "user": "21781dff9bf02f0c6d32c4b2",
+                        "webhookStatus": "success"
+                     ]
+                  ]
+               ]
+            ]
+         }
+         return nil
+      }
+      // Force refresh
+      Iaphub.shared.user?.fetchDate = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 60 * 60 * 25)
+      
+      try await Iaphub.getActiveProducts()
+
+      XCTAssertEqual(self.delegate.deferredPurchases.count, 1)
+      XCTAssertEqual(self.delegate.deferredPurchases[0].id, "21781dff9bf02f0c6d32c5a7")
    }
 
 }

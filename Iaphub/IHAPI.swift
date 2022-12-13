@@ -30,11 +30,15 @@ class IHAPI {
    /**
     Get user
    */
-   public func getUser( _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+   public func getUser(_ completion: @escaping (IHError?, [String: Any]?) -> Void) {
       var params: [String: Any] = [:]
-      // Add updateDate
+      // Add updateDate parameter
       if (self.user.updateDate != nil) {
          params["updateDate"] = "\(Int64((self.user.updateDate!.timeIntervalSince1970 * 1000).rounded())))"
+      }
+      // Add deferredPurchase parameter
+      if (self.user.enableDeferredPurchaseListener == false) {
+         params["deferredPurchase"] = "false"
       }
       // Add device params
       for (key, value) in self.user.sdk.deviceParams {
