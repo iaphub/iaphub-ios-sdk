@@ -568,15 +568,15 @@ import Foundation
    /**
     Get products (active and for sale)
     */
-   func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?, [IHActiveProduct]?) -> Void) {
+   func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, IHProducts?) -> Void) {
       // Get active products
       self.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates) { err, activeProducts in
          // Check if there is an error
-         if (err != nil) {
-            return completion(err, nil, nil)
+         guard err == nil, let activeProducts = activeProducts else {
+            return completion(err, nil)
          }
          // Otherwise return the products
-         completion(nil, self.productsForSale, activeProducts)
+         completion(nil, IHProducts(activeProducts: activeProducts, productsForSale: self.productsForSale))
       }
    }
 

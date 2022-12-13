@@ -237,10 +237,10 @@ import UIKit
    /**
     Get products (active and for sale)
     */
-   @objc public class func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHProduct]?, [IHActiveProduct]?) -> Void) {
+   @objc public class func getProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, IHProducts?) -> Void) {
       // Check the sdk is started
       guard let user = shared.user else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProducts failed"), nil, nil)
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProducts failed"), nil)
       }
       // Return products
       user.getProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
@@ -499,6 +499,22 @@ extension Iaphub {
    public class func getActiveProducts(includeSubscriptionStates: [String] = []) async throws -> [IHActiveProduct] {
       return try await withCheckedThrowingContinuation { continuation in
          Iaphub.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates, { (err, products) in
+            if let products = products, err == nil {
+               continuation.resume(returning: products)
+            }
+            else {
+               continuation.resume(throwing: err! as Error)
+            }
+         })
+      }
+   }
+   
+   /**
+    Async/await get products
+    */
+   public class func getProducts(includeSubscriptionStates: [String] = []) async throws -> IHProducts {
+      return try await withCheckedThrowingContinuation { continuation in
+         Iaphub.getProducts(includeSubscriptionStates: includeSubscriptionStates, { (err, products) in
             if let products = products, err == nil {
                continuation.resume(returning: products)
             }

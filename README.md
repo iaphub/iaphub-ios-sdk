@@ -226,6 +226,15 @@ If you're looking to display a message when a user has a subscription on a `retr
   })
 ```
 
+## Get all products
+You can also get the products for sale and active products using one method `getProducts()`
+
+```swift
+  Iaphub.getProducts({ (err: IHError?, products: IHProducts?) in
+    // On a success err should be nil
+  })
+```
+
 ## Buy a product
 Call the ``buy`` method to buy a product<br/><br/>
 ℹ️ The method needs the product sku that you would get from one of the products of `getProductsForSale`.<br/>

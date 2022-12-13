@@ -23,16 +23,13 @@ class IAP: ObservableObject {
    }
    
    func refreshProducts() {
-      Iaphub.getProducts { err, productsForSale, activeProducts in
-         if (productsForSale != nil) {
-            self.productsForSale = productsForSale!
-         }
-         if (activeProducts != nil) {
-            self.activeProducts = activeProducts!
-         }
-         if (err != nil) {
+      Iaphub.getProducts { err, products in
+         guard err == nil, let products = products else {
             print("-> refresh products error: \(err?.localizedDescription)")
+            return
          }
+         self.productsForSale = products.productsForSale
+         self.activeProducts = products.activeProducts
       }
    }
    
