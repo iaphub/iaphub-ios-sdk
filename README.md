@@ -322,7 +322,7 @@ Call the ``restore`` method to restore the user purchases<br/><br/>
 ℹ️ You must display a button somewhere in your app in order to allow the user to restore its purchases.<br/>
 
 ```swift
-Iaphub.restore({ (err: IHError?) in
+Iaphub.restore({ (err: IHError?, response: IHRestoreResponse?) in
   if (err != nil) {
     self.openAlert("Restore failed")
   }
@@ -390,6 +390,12 @@ Iaphub.showManageSubscriptions({ (err: IHError?) in
 | Prop  | Type | Description |
 | :------------ |:---------------:| :-----|
 | webhookStatus | `String?` | Webhook status (Possible values: 'success', 'failed', 'disabled') |
+
+### IHRestoreResponse
+| Prop  | Type | Description |
+| :------------ |:---------------:| :-----|
+| newPurchases | `[ReceiptTransaction]?` | New purchases processed during the restore |
+| transferredActiveProducts | `[ActiveProduct]?` | Active products transferred (from another user) during the restore |
 
 ### IHError (inherit from LocalizedError)
 | Prop  | Type | Description |
