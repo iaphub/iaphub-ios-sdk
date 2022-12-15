@@ -429,7 +429,7 @@ import Foundation
    }
    
    /**
-    Update user with data
+    Process events
    */
    func processEvents(_ events: [IHEvent]) {
       events.forEach { event in
