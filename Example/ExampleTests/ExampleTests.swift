@@ -315,6 +315,8 @@ class IaphubTests: XCTestCase {
                      "purchaseDate": "2021-05-22T01:34:40.462Z",
                      "platform": "ios",
                      "isFamilyShare": false,
+                     "isPromo": false,
+                     "originalPurchase": "2e517bdd0613c16f11e7fab2",
                      "expirationDate": "2023-05-22T01:34:40.462Z",
                      "subscriptionState": "retry_period",
                      "subscriptionPeriodType": "normal",
@@ -329,6 +331,8 @@ class IaphubTests: XCTestCase {
                      "purchaseDate": "2021-05-22T01:34:40.462Z",
                      "platform": "ios",
                      "isFamilyShare": false,
+                     "isPromo": false,
+                     "originalPurchase": "2e517bdd0613c16f21e5fab1",
                      "expirationDate": "2023-05-22T01:34:40.462Z",
                      "subscriptionState": "grace_period",
                      "subscriptionPeriodType": "normal",
@@ -342,6 +346,9 @@ class IaphubTests: XCTestCase {
                      "purchaseDate": "2021-04-22T01:34:40.462Z",
                      "platform": "android",
                      "isFamilyShare": false,
+                     "isPromo": true,
+                     "promoCode": "SPRING",
+                     "originalPurchase": "6e517bdd0313c56f11e7faz9",
                      "expirationDate": "2023-05-22T01:34:40.462Z",
                      "subscriptionState": "active",
                      "subscriptionPeriodType": "normal",
@@ -360,8 +367,11 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(activeProducts.count, 2)
       XCTAssertEqual(activeProducts[0].sku, "unknown_subscription")
       XCTAssertEqual(activeProducts[0].localizedTitle, nil)
+      XCTAssertEqual(activeProducts[0].originalPurchase, "2e517bdd0613c16f21e5fab1")
       XCTAssertEqual(activeProducts[1].sku, "")
       XCTAssertEqual(activeProducts[1].localizedTitle, nil)
+      XCTAssertEqual(activeProducts[1].isPromo, true)
+      XCTAssertEqual(activeProducts[1].promoCode, "SPRING")
       
       let allActiveProducts = try await Iaphub.getActiveProducts(includeSubscriptionStates: ["retry_period", "paused"])
       XCTAssertEqual(allActiveProducts.count, 3)

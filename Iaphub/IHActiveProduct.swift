@@ -17,7 +17,13 @@ import StoreKit
    @objc public var purchaseDate: Date?
    // Platform of the purchase
    @objc public var platform: String?
+   // If it has been purchased using a promo code
+   @objc public var isPromo: Bool = false
+   // Promo code used for the purchase
+   @objc public var promoCode: String?
 
+   // Original purchase id
+   @objc public var originalPurchase: String?
    // Subscription expiration date
    @objc public var expirationDate: Date?
    // Returns if the subscription will auto renew
@@ -51,7 +57,10 @@ import StoreKit
          )
       })
       self.platform = data["platform"] as? String
+      self.isPromo = (data["isPromo"] as? Bool) ?? false
+      self.promoCode = data["promoCode"] as? String
       // The following properties are for subscritions only
+      self.originalPurchase = data["originalPurchase"] as? String
       self.expirationDate = IHUtil.dateFromIsoString(data["expirationDate"], allowNull: !self.type.contains("subscription"), failure: { err in
          IHError(
             IHErrors.unexpected,
@@ -83,6 +92,9 @@ import StoreKit
          "purchase": self.purchase as Any,
          "purchaseDate": IHUtil.dateToIsoString(self.purchaseDate) as Any,
          "platform": self.platform as Any,
+         "isPromo": self.isPromo as Any,
+         "promoCode": self.promoCode as Any,
+         "originalPurchase": self.originalPurchase as Any,
          "expirationDate": IHUtil.dateToIsoString(self.expirationDate) as Any,
          "isSubscriptionRenewable": self.isSubscriptionRenewable as Any,
          "isFamilyShare": self.isFamilyShare as Any,
