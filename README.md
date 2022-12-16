@@ -391,6 +391,12 @@ Iaphub.showManageSubscriptions({ (err: IHError?) in
 | :------------ |:---------------:| :-----|
 | webhookStatus | `String?` | Webhook status (Possible values: 'success', 'failed', 'disabled') |
 
+### IHProducts
+| Prop  | Type | Description |
+| :------------ |:---------------:| :-----|
+| productsForSale | `[Product]` | Products for sale |
+| activeProducts | `[ActiveProduct]` | Active products |
+
 ### IHRestoreResponse
 | Prop  | Type | Description |
 | :------------ |:---------------:| :-----|
