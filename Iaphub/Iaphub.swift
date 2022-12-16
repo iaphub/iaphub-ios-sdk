@@ -336,12 +336,14 @@ import UIKit
                error = err
                // Check receipt response
                if error == nil, let receiptResponse = receiptResponse {
-                  // Refresh user in case the user id has been updated
+                  // Refresh user in case the user id has been updated or any events has been posted
                   user.refresh({ (_, _, _) in
-                     // Finish receipt
-                     shouldFinishReceipt = true
+                     // Finish receipt if it is a success
+                     if (receiptResponse.status == "success") {
+                        shouldFinishReceipt = true
+                     }
                      // Check if the receipt is invalid
-                     if (receiptResponse.status == "invalid") {
+                     else if (receiptResponse.status == "invalid") {
                         error = IHError(IHErrors.receipt_invalid, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
                      // Check if the receipt is failed
@@ -360,10 +362,9 @@ import UIKit
                      else if (receiptResponse.status == "processing") {
                         error = IHError(IHErrors.receipt_processing, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
-                     // Check any other status different than success
-                     else if (receiptResponse.status != "success") {
+                     // Check any other status
+                     else {
                         error = IHError(IHErrors.unexpected, IHUnexpectedErrors.receipt_validation_response_invalid, message: "status: \(receiptResponse.status ?? "nil")", params: ["context": receipt.context])
-                        shouldFinishReceipt = false
                      }
                      // If there is no error, try to find the transaction
                      if (error == nil) {

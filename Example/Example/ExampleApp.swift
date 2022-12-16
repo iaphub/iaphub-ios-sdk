@@ -67,6 +67,10 @@ extension AppDelegate: IaphubDelegate {
       print("-> didReceiveUserUpdate triggered in delegate")
       IAP.shared.refreshProducts()
    }
+   
+   func didReceiveDeferredPurchase(transaction: IHReceiptTransaction) {
+      print("-> didReceiveDeferredPurchase triggered in delegate: \(transaction.getDictionary())")
+   }
 
    func didProcessReceipt(_ err: IHError?, _ receipt: IHReceipt?) {
       print("-> didProcessReceipt triggered in delegate")

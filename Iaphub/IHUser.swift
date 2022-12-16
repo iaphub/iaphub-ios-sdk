@@ -51,6 +51,8 @@ import Foundation
    var updateDate: Date? = nil
    // If the deferred purchase events should be consumed
    var enableDeferredPurchaseListener: Bool = true
+   // The fast refresh will be enabled until this date when enabled
+   var fastRefreshDate: Date? = nil
 
    init(id: String?, sdk: Iaphub, enableDeferredPurchaseListener: Bool = true, onUserUpdate: (() -> Void)?, onDeferredPurchase: ((IHReceiptTransaction) -> Void)?) {
       // If id defined use it
@@ -107,6 +109,14 @@ import Foundation
    }
    
    /**
+    Enable fast refresh (during 72 hours by default)
+    */
+   func enableFastRefresh(duration: Double = 60 * 60 * 24 * 3) {
+      let currentDate = Date()
+      self.fastRefreshDate = Date(timeIntervalSince1970: currentDate.timeIntervalSince1970 + duration)
+   }
+   
+   /**
     Buy product
     */
    func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
@@ -143,7 +153,14 @@ import Foundation
                }
             }
             // Launch purchase
-            self.sdk.storekit.buy(product, completion)
+            self.sdk.storekit.buy(product) { err, transaction in
+               // Enable fast refresh for some errors (because we need to watch for potential deferred purchases)
+               if let err = err, ["deferred_payment", "receipt_failed", "network_error", "unexpected"].contains(err.code) {
+                  self.enableFastRefresh()
+               }
+               // Call completion
+               completion(err, transaction)
+            }
          }
       })
    }
@@ -448,6 +465,11 @@ import Foundation
     Refresh user
    */
    func refresh(interval: Double, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
+      var refreshInterval = interval
+      // We need to lower the interval to 60 seconds if the fast refresh mode is enabled
+      if let fastRefreshDate = self.fastRefreshDate, (Date() < fastRefreshDate) {
+         refreshInterval = 60
+      }
       // Check if we need to fetch the user
       if (
             // Refresh forced
@@ -457,7 +479,7 @@ import Foundation
             // User marked as outdated
             self.needsFetch == true ||
             // User hasn't been refreshed since the interval
-            (Date(timeIntervalSince1970: self.fetchDate!.timeIntervalSince1970 + interval) < Date()) ||
+            (Date(timeIntervalSince1970: self.fetchDate!.timeIntervalSince1970 + refreshInterval) < Date()) ||
             // Receit post date more recent than the user fetch date
             (self.receiptPostDate != nil && self.receiptPostDate! > self.fetchDate!)
       ) {
