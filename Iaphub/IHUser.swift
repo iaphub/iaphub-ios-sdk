@@ -705,12 +705,12 @@ import Foundation
       self.restoredDeferredPurchases = []
       // Mark as restoring
       self.isRestoring = true
+      // Save old active products
+      let oldActiveProducts = self.activeProducts
       // Launch restore
       self.sdk.storekit.restore({ (err) in
          // Update updateDate
          self.updateDate = Date()
-         // Save old active products
-         let oldActiveProducts = self.activeProducts
          // Refresh user
          self.refresh(interval: 0, force: true, { _, _, _ in
             let newPurchases = self.restoredDeferredPurchases
