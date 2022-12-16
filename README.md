@@ -381,6 +381,9 @@ Iaphub.showManageSubscriptions({ (err: IHError?) in
 | expirationDate | `Date?` | Subscription expiration date |
 | isSubscriptionRenewable | `Bool = false` | True if the auto-renewal is enabled |
 | isFamilyShare | `Bool = false` | True if the subscription is shared by a family member (iOS subscriptions only) |
+| isPromo | `Bool = false` | True if purchased using a promo code |
+| promoCode | `String?` | Promo code (Android: only available for subscriptions vanity codes, not available for one time codes) (iOS: the value is the offer reference name) |
+| originalPurchase | `String?` | Original purchase id of a renewable subscription (From IAPHUB) |
 | subscriptionRenewalProduct | `String?` | Subscription product id of the next renewal (only defined if different than the current product) |
 | subscriptionRenewalProductSku | `String?` | Subscription product sku of the next renewal |
 | subscriptionState | `String?` | State of the subscription<br>(Possible values: 'active', 'grace_period', 'retry_period', 'paused') |
