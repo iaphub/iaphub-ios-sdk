@@ -295,7 +295,7 @@ import Foundation
          if (err != nil) {
             // Clear products if the platform is disabled
             if let err, err.code == "server_error" && err.subcode == "platform_disabled" {
-               data = ["id": self.iaphubId, "productsForSale": [], "activeProducts": []]
+               data = ["productsForSale": [], "activeProducts": []]
             }
             // Otherwise return an error
             else {
