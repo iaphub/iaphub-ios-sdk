@@ -28,6 +28,7 @@ public enum IHErrors : String, IHErrorProtocol {
    case receipt_failed = "Receipt validation failed, receipt processing will be automatically retried if possible"
    case receipt_invalid = "Receipt is invalid"
    case receipt_stale = "Receipt is stale, no purchases still valid were found"
+   case receipt_expired = "Receipt is expired"
    case receipt_processing = "Receipt is currently processing"
    case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
    case product_already_purchased = "Product already purchased, it is already an active product of the user"
