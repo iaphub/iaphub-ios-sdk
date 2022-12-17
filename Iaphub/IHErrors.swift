@@ -26,10 +26,6 @@ public enum IHErrors : String, IHErrorProtocol {
    case deferred_payment = "The payment has been deferred (transaction pending, its final status is pending external action)"
    case product_not_available = "The requested product isn't available for purchase"
    case receipt_failed = "Receipt validation failed, receipt processing will be automatically retried if possible"
-   case receipt_invalid = "Receipt is invalid"
-   case receipt_stale = "Receipt is stale, no purchases still valid were found"
-   case receipt_expired = "Receipt is expired"
-   case receipt_processing = "Receipt is currently processing"
    case cross_platform_conflict = "Cross platform conflict detected, an active subscription from another platform has been detected"
    case product_already_purchased = "Product already purchased, it is already an active product of the user"
    case product_change_next_renewal = "The product will be changed on the next renewal date"
@@ -40,6 +36,22 @@ public enum IHErrors : String, IHErrorProtocol {
    case user_tags_processing = "The user is currently posting tags, please wait concurrent requests not allowed"
    case restore_processing = "A restore is currently processing"
    case buy_processing = "A purchase is currently processing"
+
+   var code: String {
+      get { return String(describing: self) }
+   }
+   var message: String {
+      get { return self.rawValue }
+   }
+}
+
+enum IHReceiptErrors : String, IHErrorProtocol {
+
+   case receipt_failed = "receipt processing failed"
+   case receipt_invalid = "receipt invalid"
+   case receipt_stale = "receipt stale, no purchases still valid were found"
+   case receipt_expired = "receipt expired"
+   case receipt_processing = "receipt currently processing"
 
    var code: String {
       get { return String(describing: self) }

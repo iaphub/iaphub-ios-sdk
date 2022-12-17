@@ -274,19 +274,10 @@ Iaphub.buy(sku: sku, { (err: IHError?, transaction: IHReceiptTransaction?) in
     /*
      * The receipt has been processed on IAPHUB but something went wrong
      * It is probably because of an issue with the configuration of your app or a call to the Itunes/GooglePlay API that failed
-     * IAPHUB will send you an email notification when a receipt fails, by checking the receipt on the dashboard you'll find a detailed report of the error
-     * After fixing the issue (if there's any), just click on the 'New report' button in order to process the receipt again
-     * If it is an error contacting the Itunes/GooglePlay API, IAPHUB will retry to process the receipt automatically as well
+     * IAPHUB will automatically retry to process the receipt if possible (depends on the error)
      */
     else if (err.code == "receipt_failed") {
         return self.openAlert("We're having trouble validating your transaction, give us some time we'll retry to validate your transaction ASAP!")
-    }
-    /*
-     * The receipt has been processed on IAPHUB but is invalid
-     * It could be a fraud attempt, using apps such as Freedom or Lucky Patcher on an Android rooted device
-     */
-    else if (err.code == "receipt_invalid") {
-        return self.openAlert("We were not able to process your purchase, if you've been charged please contact the support (support@myapp.com)")
     }
     /*
      * The user has already an active subscription on a different platform (android or ios)

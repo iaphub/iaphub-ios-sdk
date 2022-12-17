@@ -344,30 +344,30 @@ import UIKit
                      }
                      // Check if the receipt is invalid
                      else if (receiptResponse.status == "invalid") {
-                        error = IHError(IHErrors.receipt_invalid, params: ["context": receipt.context], silent: receipt.context != "purchase")
+                        error = IHError(IHErrors.receipt_failed, IHReceiptErrors.receipt_invalid, params: ["context": receipt.context], silent: receipt.context != "purchase")
                         shouldFinishReceipt = true
                      }
                      // Check if the receipt is expired (the receipt is expired and it cannot be used anymore)
                      else if (receiptResponse.status == "expired") {
-                        error = IHError(IHErrors.receipt_expired, params: ["context": receipt.context], silent: receipt.context != "purchase")
+                        error = IHError(IHErrors.receipt_failed, IHReceiptErrors.receipt_expired, params: ["context": receipt.context], silent: receipt.context != "purchase")
                         shouldFinishReceipt = true
                      }
                      // Check if the receipt is stale (the receipt is valid but no purchases still valid were found)
                      else if (receiptResponse.status == "stale") {
-                        error = IHError(IHErrors.receipt_stale, params: ["context": receipt.context], silent: receipt.context != "purchase")
+                        error = IHError(IHErrors.receipt_failed, IHReceiptErrors.receipt_stale, params: ["context": receipt.context], silent: receipt.context != "purchase")
                         shouldFinishReceipt = true
                      }
                      // Check if the receipt is failed
                      else if (receiptResponse.status == "failed") {
-                        error = IHError(IHErrors.receipt_failed, params: ["context": receipt.context])
+                        error = IHError(IHErrors.receipt_failed, IHReceiptErrors.receipt_failed, params: ["context": receipt.context])
+                     }
+                     // Check if the receipt is processing
+                     else if (receiptResponse.status == "processing") {
+                        error = IHError(IHErrors.receipt_failed, IHReceiptErrors.receipt_processing, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
                      // Check if the receipt is deferred (not needed on iOS but still implemented it in case)
                      else if (receiptResponse.status == "deferred") {
                         error = IHError(IHErrors.deferred_payment, params: ["context": receipt.context], silent: true)
-                     }
-                     // Check if the receipt is processing
-                     else if (receiptResponse.status == "processing") {
-                        error = IHError(IHErrors.receipt_processing, params: ["context": receipt.context], silent: receipt.context != "purchase")
                      }
                      // Check any other status
                      else {
