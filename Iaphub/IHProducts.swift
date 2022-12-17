@@ -19,5 +19,12 @@ import Foundation
       self.activeProducts = activeProducts
       self.productsForSale = productsForSale
    }
+   
+   public func getDictionary() -> [String: Any] {
+      return [
+         "activeProducts": self.activeProducts.map({(item) in item.getDictionary()}) as Any,
+         "productsForSale": self.productsForSale.map({(item) in item.getDictionary()}) as Any
+      ]
+   }
 
 }
