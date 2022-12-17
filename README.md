@@ -35,7 +35,8 @@ Implementing In-app purchases in your app should be a piece of cake!<br/>
 
 <br>
 
-⚠ If you're migrating from v2.X.X to v3.X.X, read [this](https://github.com/iaphub/iaphub-ios-sdk/tree/master/guides/migrate-v2-to-v3.md).
+⚠ If you're migrating from v2.X.X to v3.X.X, read [this](https://github.com/iaphub/iaphub-ios-sdk/tree/master/guides/migrate-v2-to-v3.md).<br/>
+⚠ If you're migrating from v3.X.X to v4.X.X, read [this](https://github.com/iaphub/iaphub-ios-sdk/tree/master/guides/migrate-v3-to-v4.md).
 
 ## Start
 Import `Iaphub` and execute the start method in `application(_:didFinishLaunchingWithOptions:)`<br/>
