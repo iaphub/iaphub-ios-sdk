@@ -294,7 +294,7 @@ import Foundation
          var data = data
          if (err != nil) {
             // Clear products if the platform is disabled
-            if let err, err.code == "server_error" && err.subcode == "platform_disabled" {
+            if let err = err, err.code == "server_error" && err.subcode == "platform_disabled" {
                data = ["productsForSale": [], "activeProducts": []]
             }
             // Otherwise return an error
