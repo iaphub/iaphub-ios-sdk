@@ -145,29 +145,19 @@ class IHLocalizedError: LocalizedError {
       if (!IHLogLimit.isAllowed()) {
          return
       }
+      // Build fingerprint
+      let fingerprint = "\(IHConfig.sdk)_\(self.code)_\(self.subcode ?? "")"
       // Send request
-      Iaphub.shared.user?.api?.postLog([
-         "data": [
-            "body": [
-               "message": ["body": self.message]
-            ],
-            "environment": Iaphub.shared.environment,
-            "platform": IHConfig.sdk,
-            "code_version": IHConfig.sdkVersion,
-            "framework": Iaphub.shared.sdk,
-            "custom": self.params.merging([
-               "osVersion": Iaphub.shared.osVersion,
-               "sdkVersion": Iaphub.shared.sdkVersion,
-               "code": self.code,
-               "subcode": self.subcode ?? ""
-            ]) { (_, new) in new },
-            "person": ["id": Iaphub.shared.appId],
-            "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")",
-            "fingerprint": "\(IHConfig.sdk)_\(self.code)_\(self.subcode ?? "")"
-         ]
-      ], { err in
-         // No need to do anything if there is an error
-      })
+      Iaphub.shared.user?.sendLog([
+         "message": self.message,
+         "params": self.params.merging([
+            "osVersion": Iaphub.shared.osVersion,
+            "sdkVersion": Iaphub.shared.sdkVersion,
+            "code": self.code,
+            "subcode": self.subcode ?? ""
+         ]) { (_, new) in new },
+         "fingerprint": fingerprint
+      ])
    }
    
    public func getDictionary() -> [String: Any?] {

@@ -744,4 +744,40 @@ import Foundation
       })
    }
    
+   /**
+    Send log
+   */
+   func sendLog(_ options: Dictionary<String, Any>) {
+      var params = [
+         "data": [
+            "body": [
+               "message": ["body": options["message"]]
+            ],
+            "level": (options["level"] ?? "error"),
+            "environment": Iaphub.shared.environment,
+            "platform": IHConfig.sdk,
+            "framework": Iaphub.shared.sdk,
+            "code_version": IHConfig.sdkVersion,
+            "person": ["id": Iaphub.shared.appId],
+            "context": "\(Iaphub.shared.appId)/\(Iaphub.shared.user?.id ?? "")"
+         ]
+      ]
+      print("-> Send log")
+      // Add params
+      if let custom = options["params"] as? Dictionary<String, Any> {
+         params["data"]?["custom"] = custom.merging([
+            "userIsInitialized": self.isInitialized,
+            "userHasProducts": (!self.productsForSale.isEmpty || !self.activeProducts.isEmpty)
+         ]) { (_, new) in new }
+      }
+      // Add fingerprint
+      if let fingerprint = options["fingerprint"] as? String {
+         params["data"]?["fingerprint"] = fingerprint
+      }
+      // Send request
+      Iaphub.shared.user?.api?.postLog(params, { err in
+         // No need to do anything if there is an error
+      })
+   }
+   
 }
