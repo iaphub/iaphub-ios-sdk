@@ -146,6 +146,7 @@ class IHNetwork {
     Send a request
    */
    private func sendRequest(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double, _ completion: @escaping (IHError?, [String: Any]?, HTTPURLResponse?) -> Void) {
+      let startTime = (Date().timeIntervalSince1970 * 1000).rounded()
       var infos = ["type": type, "route": route]
       
       do {
@@ -161,6 +162,9 @@ class IHNetwork {
          let session = URLSession(configuration: sessionConfig)
          // Create task
          let task = session.dataTask(with: request) { (data, response, error) in
+            // Add duration to infos
+            let endTime = (Date().timeIntervalSince1970 * 1000).rounded()
+            infos["duration"] = "\(endTime - startTime)"
             // Check for any errors
             guard error == nil else {
                return completion(IHError(IHErrors.network_error, IHNetworkErrors.request_failed, message: error?.localizedDescription, params: infos, silent: true), nil, nil)
