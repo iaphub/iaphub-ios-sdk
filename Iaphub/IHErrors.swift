@@ -97,7 +97,7 @@ enum IHUnexpectedErrors : String, IHErrorProtocol {
    case api_not_found = "api not found"
    case user_id_invalid = "user id invalid"
    case update_item_parsing_failed = "error parsing item of api in order to update user"
-   case product_missing_from_store = "itunes did not return the product, the product has been filtered, if the sku is valid your Itunes account or sandbox environment is probably not configured properly (https://iaphub.com/docs/set-up-ios/configure-sandbox-testing)"
+   case product_missing_from_store = "itunes did not return the product, the product has been filtered (https://www.iaphub.com/docs/troubleshooting/product-not-returned)"
    case get_receipt_token_failed = "cannot get receipt token"
    case post_receipt_data_missing = "post receipt data missing"
    case date_parsing_failed = "the parsing of a date failed"
