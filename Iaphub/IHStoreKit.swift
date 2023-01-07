@@ -152,8 +152,12 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     Get SK products
     */
    public func getSKProducts(_ skus: Set<String>, _ completion: @escaping (IHError?, [SKProduct]?) -> Void) {
+      // Check for testing
+      if (Iaphub.shared.testing.billingUnavailable == true) {
+         return completion(IHError(IHErrors.billing_unavailable), nil)
+      }
+      // Start Products request
       let request = SKProductsRequest(productIdentifiers: skus)
-
       self.getProductsRequests.append((request: request, skus: skus, completion: completion))
       request.delegate = self
       request.start()
@@ -572,21 +576,13 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
       self.getProductsRequests.removeAll(where: { $0.request ==  item.request})
       // Try to get the products from the cache
       let cachedProducts = self.products.filter { (product) in item.skus.contains(product.productIdentifier) == true }
-      // Return cached products instead of error if we found all the skus in cache
-      if (cachedProducts.count == item.skus.count) {
-         DispatchQueue.main.async {
-            item.completion(nil, cachedProducts)
+      // Call completion
+      DispatchQueue.main.async {
+         if let skError = error as? SKError {
+            item.completion(IHError(skError), cachedProducts)
          }
-      }
-      // Otherwise return error
-      else {
-         DispatchQueue.main.async {
-            if let skError = error as? SKError {
-               item.completion(IHError(skError), nil)
-            }
-            else {
-               item.completion(IHError(error), nil)
-            }
+         else {
+            item.completion(IHError(error), cachedProducts)
          }
       }
    }
@@ -595,17 +591,19 @@ class IHStoreKit: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObser
     Triggered when the response of a SKProductsRequest is available
     */
    func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
-      // Iterate through products
-      for product in response.products {
-         // Remove product from list if already saved
-         self.products.removeAll(where: {$0.productIdentifier == product.productIdentifier})
-         // Add new product
-         self.products.append(product)
-      }
       // Look for request
       let item = self.getProductsRequests.first(where: {$0.request == request})
       // Remove request
       self.getProductsRequests.removeAll(where: { $0.request ==  item?.request})
+      // Iterate through skus
+      item?.skus.forEach({ sku in
+         // Remove sku from cache
+         self.products.removeAll(where: {$0.productIdentifier == sku})
+         // Add product from response to cache if found
+         if let product = response.products.first(where: {$0.productIdentifier == sku}) {
+            self.products.append(product)
+         }
+      })
       // Call request callback back to the main thread
       if (item != nil) {
          DispatchQueue.main.async {

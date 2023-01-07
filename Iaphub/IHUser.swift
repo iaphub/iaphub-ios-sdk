@@ -18,6 +18,8 @@ import Foundation
    @objc public var productsForSale: [IHProduct] = []
    // Active products of the user
    @objc public var activeProducts: [IHActiveProduct] = []
+   // Filtered products for sale
+   var filteredProductsForSale: [IHProduct] = []
    // Pricings
    var pricings: [IHProductPricing] = []
    // Latest user fetch date
@@ -51,6 +53,9 @@ import Foundation
    var updateDate: Date? = nil
    // If the deferred purchase events should be consumed
    var enableDeferredPurchaseListener: Bool = true
+   // Last error returned when fetching the products details
+   var productsDetailsError: IHError? = nil
+
 
    init(id: String?, sdk: Iaphub, enableDeferredPurchaseListener: Bool = true, onUserUpdate: (() -> Void)?, onDeferredPurchase: ((IHReceiptTransaction) -> Void)?) {
       var hasAnonymousIdSaveFailed = false
@@ -418,39 +423,25 @@ import Foundation
       let events = IHUtil.parseItems(data: data["events"], type: IHEvent.self, allowNull: true) { err, item in
          IHError(IHErrors.unexpected, IHUnexpectedErrors.update_item_parsing_failed, message: "event, " + err.localizedDescription, params: ["item": item as Any])
       }
-      let products = productsForSale + activeProducts
-      let productSkus = Set(
-         // Extract product sku
-         (products.map({ (product) in product.sku}) + events.map({ (event) in event.transaction.sku}))
-         // Filter empty sku (could happen with an active product from another platform)
-         .filter({(sku) in sku != ""})
-      )
 
-      self.sdk.storekit.getProductsDetails(productSkus, { (err, productsDetails) in
-         // Check for error
-         guard err == nil else {
-            return completion(err)
-         }
-         // Otherwise assign data to the product
-         productsDetails?.forEach({ (productDetail) in
-            let product = products.first(where: {$0.sku == productDetail.sku})
+      
+      let eventTransactions = events.map({ (event) in event.transaction})
+      let products: [IHProduct] = productsForSale + activeProducts + eventTransactions
 
-            // If the product has been found set skProduct
-            product?.setDetails(productDetail)
-            // Same for events
-            events.forEach { event in
-               if (event.transaction.sku == productDetail.sku) {
-                  event.transaction.setDetails(productDetail)
-               }
-            }
-         })
-         // Filter products for sale with no skProduct
-         self.productsForSale = productsForSale.filter({ (product) in
-            if (product.details == nil) {
+      self.updateProductsDetails(products, {
+         let oldFilteredProducts = self.filteredProductsForSale
+         
+         // Filter products for sale
+         self.productsForSale = productsForSale.filter({ product in product.details != nil})
+         self.filteredProductsForSale = productsForSale.filter({ product in product.details == nil})
+         // Check filtered products
+         self.filteredProductsForSale.forEach { product in
+            let oldFilteredProduct = oldFilteredProducts.first(where: {item in item.sku == product.sku})
+            // Trigger log only if it is a new filtered product
+            if (oldFilteredProduct == nil) {
                IHError(IHErrors.unexpected, IHUnexpectedErrors.product_missing_from_store, message: "(sku: \(product.sku)", params: ["sku": product.sku])
             }
-            return product.details != nil
-         })
+         }
          // No need to filter active products
          self.activeProducts = activeProducts
          // Update iaphub id
@@ -462,6 +453,67 @@ import Foundation
          // Call completion
          completion(nil)
       })
+   }
+   
+   /**
+    Update products details
+   */
+   func updateProductsDetails(_ products: [IHProduct], _ completion: @escaping () -> Void) {
+      // Extract sku and filter empty sku (could happen with an active product from another platform)
+      let productSkus = Set(
+         // Extract product sku
+         products.map({ (product) in product.sku})
+         // Filter empty sku (could happen with an active product from another platform)
+         .filter({(sku) in sku != ""})
+      )
+      
+      // Get products details
+      self.sdk.storekit.getProductsDetails(productSkus, { (err, productsDetails) in
+         // Note: We're not calling with completion handler with the error of getProductsDetails
+         // We need to complete the update even though an error such as 'billing_unavailable' is returned
+         // When there is an error getProductsDetails can still return products details (they might be in cache)
+         // So instead we're saving the error
+         self.productsDetailsError = err
+         // Assign details to the products
+         productsDetails?.forEach({ productDetail in
+            products
+            .filter { (product) in product.sku == productDetail.sku}
+            .forEach { product in
+               product.setDetails(productDetail)
+            }
+         })
+         // Call completion
+         completion()
+      })
+   }
+   
+   /**
+    Update filtered products
+   */
+   func updateFilteredProducts(_ completion: @escaping (Bool) -> Void) {
+      // Update products details
+      self.updateProductsDetails(self.filteredProductsForSale) {
+         // Detect recovered products
+         let recoveredProducts = self.filteredProductsForSale.filter({product in product.details != nil})
+         // Add to list of products for sale
+         self.productsForSale = self.productsForSale + recoveredProducts
+         // Update filtered products for sale
+         self.filteredProductsForSale = self.filteredProductsForSale.filter({product in product.details == nil})
+         // If we recovered products
+         if (!recoveredProducts.isEmpty) {
+            // Trigger onUserUpdate
+            self.onUserUpdate?()
+            // Update pricings
+            self.updatePricings { _ in
+               // Call completion
+               completion(true)
+            }
+         }
+         // Otherwise just call the completion
+         else {
+            completion(false)
+         }
+      }
    }
    
    /**
@@ -484,7 +536,8 @@ import Foundation
     Refresh user
    */
    func refresh(interval: Double, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
-      // Check if we need to fetch the user
+      var shouldFetch = false
+      
       if (
             // Refresh forced
             force ||
@@ -497,36 +550,46 @@ import Foundation
             // Receit post date more recent than the user fetch date
             (self.receiptPostDate != nil && self.receiptPostDate! > self.fetchDate!)
       ) {
-         self.fetch({ (err, isUpdated) in
-            // Check if there is an error
-            if (err != nil) {
-               // Return an error if the user has never been fetched
-               if (self.fetchDate == nil) {
-                  completion?(err, false, false)
-               }
-               // Otherwise check if there is an expired subscription in the active products
-               else {
-                  let expiredSubscription = self.activeProducts.first(where: { $0.expirationDate != nil && $0.expirationDate! < Date()})
-                  // If we have an expired subscription, return an error
-                  if (expiredSubscription != nil) {
-                     completion?(err, false, false)
-                  }
-                  // Otherwise return no error
-                  else {
-                     completion?(nil, false, false)
-                  }
-               }
-            }
-            // Otherwise it's a success
-            else {
-               completion?(nil, true, isUpdated)
-            }
-         })
+         shouldFetch = true
+      }
+      // Update products details if we had an error or filtered products
+      if (!shouldFetch && (self.productsDetailsError != nil || !self.filteredProductsForSale.isEmpty)) {
+         self.updateFilteredProducts { isUpdated in
+            completion?(nil, false, isUpdated)
+         }
+         return
       }
       // Otherwise no need to fetch the user
-      else {
+      if (!shouldFetch) {
          completion?(nil, false, false)
+         return
       }
+      // Otherwise fetch user
+      self.fetch({ (err, isUpdated) in
+         // Check if there is an error
+         if (err != nil) {
+            // Return an error if the user has never been fetched
+            if (self.fetchDate == nil) {
+               completion?(err, false, false)
+            }
+            // Otherwise check if there is an expired subscription in the active products
+            else {
+               let expiredSubscription = self.activeProducts.first(where: { $0.expirationDate != nil && $0.expirationDate! < Date()})
+               // If we have an expired subscription, return an error
+               if (expiredSubscription != nil) {
+                  completion?(err, false, false)
+               }
+               // Otherwise return no error
+               else {
+                  completion?(nil, false, false)
+               }
+            }
+         }
+         // Otherwise it's a success
+         else {
+            completion?(nil, true, isUpdated)
+         }
+      })
    }
    
    /**
@@ -614,6 +677,15 @@ import Foundation
          // Otherwise return the products
          completion(nil, IHProducts(activeProducts: activeProducts, productsForSale: self.productsForSale))
       }
+   }
+   
+   /**
+    Get billing status
+    */
+   func getBillingStatus() -> IHBillingStatus {
+      let filteredProductIds = self.filteredProductsForSale.map { $0.sku }
+      
+      return IHBillingStatus(error: self.productsDetailsError, filteredProductIds: filteredProductIds)
    }
 
    /**

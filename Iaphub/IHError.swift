@@ -134,7 +134,7 @@ class IHLocalizedError: LocalizedError {
    */
    func sendLog() {
       // Do not send log if disabled
-      if (Iaphub.shared.logs == false) {
+      if (Iaphub.shared.testing.logs == false) {
          return
       }
       // Ignore some errors when sending a log isn't necessary

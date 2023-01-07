@@ -54,23 +54,39 @@ class IaphubTests: XCTestCase {
       self.testSession.clearTransactions()
       self.delegate = IaphubTestsDelegate()
       Iaphub.delegate = self.delegate
-      Iaphub.shared.logs = false
+      Iaphub.shared.testing.logs = false
+      Iaphub.shared.testing.billingUnavailable = false
       if (iaphubStarted == false) {
-         iaphubStarted = true
+         // Delete cache
+         _ = IHUtil.deleteFromKeychain(key: "iaphub_user_a_61718bfd9bf07f0c7d2357d1")
+         _ = IHUtil.deleteFromKeychain(key: "iaphub_user_61718bfd9bf07f0c7d2357d1")
+         // Start IAPHUB
          Iaphub.start(
             appId: "61718bfd9bf07f0c7d2357d1",
             apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3"
          )
+         iaphubStarted = true
       }
+   }
+
+   func test00_billingUnavailable() async throws {
+      Iaphub.shared.testing.billingUnavailable = true
+      let products = try await Iaphub.getProductsForSale()
+      XCTAssertEqual(products.count, 0)
+      let status = Iaphub.getBillingStatus()
+      XCTAssertEqual(status.filteredProductIds, ["consumable"])
+      XCTAssertEqual(status.error?.code, "billing_unavailable")
    }
    
    func test01_getProductsForSale() async throws {
-      IHUtil.deleteFromKeychain(key: "iaphub_user_a_61718bfd9bf07f0c7d2357d1")
-      IHUtil.deleteFromKeychain(key: "iaphub_user_61718bfd9bf07f0c7d2357d1")
       var pricePosted = false
+      var userFetched = false
       
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
-         if (route.contains("/pricing")) {
+         if (type == "GET" && route.contains("/user")) {
+            userFetched = true
+         }
+         else if (route.contains("/pricing")) {
             let products = params["products"] as? [Dictionary<String, Any>]
             
             if let products = products {
@@ -83,7 +99,12 @@ class IaphubTests: XCTestCase {
       }
       
       let products = try await Iaphub.getProductsForSale()
-      XCTAssertEqual(self.delegate.userUpdateCount, 0)
+      let status = Iaphub.getBillingStatus()
+
+      XCTAssertEqual(status.filteredProductIds.count, 0)
+      XCTAssertEqual(status.error, nil)
+      
+      XCTAssertEqual(self.delegate.userUpdateCount, 1)
       XCTAssertEqual(products.count, 1)
       XCTAssertEqual(products[0].sku, "consumable")
       XCTAssertEqual(products[0].type, "consumable")
@@ -93,6 +114,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(products[0].price, 1.99)
       XCTAssertEqual(products[0].currency, "USD")
       XCTAssertEqual(pricePosted, true)
+      XCTAssertEqual(userFetched, false)
    }
    
    func test02_getUserId() async throws {

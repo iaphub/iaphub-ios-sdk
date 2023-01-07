@@ -23,6 +23,7 @@ import UIKit
    static let shared = Iaphub()
 
    var storekit: IHStoreKit
+   var testing: IHSDKTesting
    var user: IHUser? = nil
 
    var appId: String = ""
@@ -36,12 +37,12 @@ import UIKit
    var isStarted = false
    var isRestoring = false
    var deviceParams: Dictionary<String, String> = [:]
-   var logs = true
    
    @objc public static weak var delegate: IaphubDelegate?
 
    override private init() {
       self.storekit = IHStoreKit()
+      self.testing = IHSDKTesting()
       super.init()
    }
 
@@ -244,6 +245,18 @@ import UIKit
       }
       // Return products
       user.getProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
+   }
+   
+   /**
+    Get billing status
+    */
+   @objc public class func getBillingStatus() -> IHBillingStatus {
+      // Check the sdk is started
+      guard let user = shared.user else {
+         return IHBillingStatus(error: IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProducts failed"))
+      }
+      // Return billing status
+      return user.getBillingStatus()
    }
    
    /**
