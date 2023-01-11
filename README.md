@@ -236,6 +236,21 @@ You can also get the products for sale and active products using one method `get
   })
 ```
 
+## Get billing status
+The method `getBillingStatus` method will return useful informations if you have an issue with the products returned by the `getProducts` or `getProductsForSale` methods (for instance if no products for sale were returned).
+```swift
+  let status = Iaphub.getBillingStatus()
+
+  // You should display an appropriate message if err.code equals "billing_unavailable"
+  if (status.error?.code == "billing_unavailable") {
+    // Display a message saying that the in-app billing isn't available on the device
+  }
+  // Check the products that were filtered from the products for sale
+  if (!status.filteredProductIds.isEmpty) {
+    // The product ids in the array were not returned by Google Play
+  }
+```
+
 ## Buy a product
 Call the ``buy`` method to buy a product<br/><br/>
 ℹ️ The method needs the product sku that you would get from one of the products of `getProductsForSale`.<br/>
