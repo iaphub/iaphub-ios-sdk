@@ -237,11 +237,11 @@ You can also get the products for sale and active products using one method `get
 ```
 
 ## Get billing status
-The method `getBillingStatus` method will return useful informations if you have an issue with the products returned by the `getProducts` or `getProductsForSale` methods (for instance if no products for sale were returned).
+The `getBillingStatus` method will return useful informations if you have an issue with the products returned by the `getProducts` or `getProductsForSale` methods (for instance if no products for sale were returned).
 ```swift
   let status = Iaphub.getBillingStatus()
 
-  // You should display an appropriate message if err.code equals "billing_unavailable"
+  // You should display an appropriate message if the billing is unavailable
   if (status.error?.code == "billing_unavailable") {
     // Display a message saying that the in-app billing isn't available on the device
   }
