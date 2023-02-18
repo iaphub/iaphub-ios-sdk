@@ -413,6 +413,12 @@ Iaphub.showManageSubscriptions({ (err: IHError?) in
 | newPurchases | `[ReceiptTransaction]` | New purchases processed during the restore |
 | transferredActiveProducts | `[ActiveProduct]` | Active products transferred (from another user) during the restore |
 
+### IHBillingStatus
+| Prop  | Type | Description |
+| :------------ |:---------------:| :-----|
+| error | `IHError?` | Error |
+| filteredProductIds | `[String]` | Products that were filtered from the products for sale |
+
 ### IHError (inherit from LocalizedError)
 | Prop  | Type | Description |
 | :------------ |:---------------:| :-----|
