@@ -43,6 +43,8 @@ import Foundation
    var isPostingTags: Bool = false
    // Indicates the user is restoring purchases
    var isRestoring: Bool = false
+   // Indicates the user is logging in
+   var isLoggingIn: Bool = false
    // Indicates the user is initialized
    var isInitialized: Bool = false
    // Indicates if the user needs to be fetched
@@ -751,6 +753,11 @@ import Foundation
       if (self.id == userId) {
          return completion(nil)
       }
+      // Check that login is not already processing
+      if (self.isLoggingIn == true) {
+         return completion(IHError(IHErrors.user_login_processing))
+      }
+      self.isLoggingIn = true
       // Detect if we should call the API to update the id
       let shouldCallApi = self.isAnonymous()
       let currentUserId = self.id
@@ -761,15 +768,18 @@ import Foundation
       // Call API if necessary
       if (shouldCallApi) {
          guard let api = self.api else {
+            self.isLoggingIn = false
             return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "login failed"))
          }
          api.login(currentUserId: currentUserId, newUserId: userId, { (_) in
+            self.isLoggingIn = false
             // Ignore error and call completion (if the login couldn't be called for any reason and the purchases were not transferred the user can still do a restore)
             completion(nil)
          })
       }
       // Otherwise call completion
       else {
+         self.isLoggingIn = false
          completion(nil)
       }
    }

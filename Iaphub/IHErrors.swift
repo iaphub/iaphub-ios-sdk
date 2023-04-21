@@ -33,7 +33,8 @@ public enum IHErrors : String, IHErrorProtocol {
    case user_conflict = "The transaction is successful but it belongs to a different user, a restore might be needed"
    case code_redemption_unavailable = "Presenting the code redemption is not available (only available on iOS 14+)"
    case manage_subscriptions_unavailable = "Manage subscriptions unavailable"
-   case user_tags_processing = "The user is currently posting tags, please wait concurrent requests not allowed"
+   case user_tags_processing = "The user is currently posting tags, please wait, concurrent requests not allowed"
+   case user_login_processing = "The user is currently logging in, please wait, concurrent requests not allowed"
    case restore_processing = "A restore is currently processing"
    case buy_processing = "A purchase is currently processing"
 
