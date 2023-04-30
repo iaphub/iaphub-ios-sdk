@@ -47,6 +47,8 @@ import Foundation
    var isLoggingIn: Bool = false
    // Indicates the user is initialized
    var isInitialized: Bool = false
+   // If the login with the server is enabled
+   var isServerLoginEnabled: Bool = false
    // Indicates if the user needs to be fetched
    var needsFetch: Bool = false
    // Latest receipt post date
@@ -197,6 +199,7 @@ import Foundation
          dictionnary["id"] = self.id
          dictionnary["fetchDate"] = IHUtil.dateToIsoString(self.fetchDate)
          dictionnary["pricings"] = self.pricings.map({(pricing) in pricing.getDictionary()})
+         dictionnary["isServerLoginEnabled"] = self.isServerLoginEnabled
          dictionnary["cacheVersion"] = IHConfig.cacheVersion
       }
       return dictionnary
@@ -227,6 +230,7 @@ import Foundation
                self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self, failure: { err, item in
                   IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, \(err.localizedDescription)", params: ["item": item as Any])
                })
+               self.isServerLoginEnabled = json["isServerLoginEnabled"] as? Bool ?? false
             }
          }
          catch {
@@ -258,6 +262,22 @@ import Foundation
       let str = String(data: data!, encoding: String.Encoding.utf8)
       let prefix = self.isAnonymous() ? "iaphub_user_a" : "iaphub_user"
       _ = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
+   }
+   
+   /**
+    Enable server login
+   */
+   func enableServerLogin() {
+      self.isServerLoginEnabled = true
+      self.saveCacheData()
+   }
+   
+   /**
+    Disable server login
+   */
+   func disableServerLogin() {
+      self.isServerLoginEnabled = false
+      self.saveCacheData()
    }
 
    /**
@@ -739,6 +759,7 @@ import Foundation
       self.updateDate = nil
       self.needsFetch = false
       self.isInitialized = false
+      self.isServerLoginEnabled = false
    }
 
    /**
@@ -759,8 +780,12 @@ import Foundation
       }
       self.isLoggingIn = true
       // Detect if we should call the API to update the id
-      let shouldCallApi = self.isAnonymous()
+      let shouldCallApi = self.isAnonymous() && self.isServerLoginEnabled
       let currentUserId = self.id
+      // Disable server login
+      if (self.isServerLoginEnabled) {
+         self.disableServerLogin()
+      }
       // Update id
       self.id = userId
       // Reset user
@@ -816,8 +841,14 @@ import Foundation
          self.receiptPostDate = Date()
          // Update updateDate
          self.updateDate = Date()
+         // Create receipt response
+         let response = IHReceiptResponse(data)
+         // If it is an anonymous user, enable the server login if a new transaction is detected
+         if (self.isAnonymous() && response.status == "success" && response.newTransactions?.isEmpty == false) {
+            self.enableServerLogin()
+         }
          // Parse and return receipt response
-         completion(nil, IHReceiptResponse(data))
+         completion(nil, response)
       })
    }
 

@@ -63,7 +63,8 @@ class IaphubTests: XCTestCase {
          // Start IAPHUB
          Iaphub.start(
             appId: "61718bfd9bf07f0c7d2357d1",
-            apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3"
+            apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3",
+            allowAnonymousPurchase: true
          )
          iaphubStarted = true
       }
@@ -129,17 +130,19 @@ class IaphubTests: XCTestCase {
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (route.contains("/login")) {
             loginTriggered = true
-            XCTAssertEqual(params["userId"] as? String, "42")
-            XCTAssertEqual(route.contains("a:"), true)
          }
          return nil
       }
       try await Iaphub.login(userId: "42")
       XCTAssertEqual(Iaphub.shared.user?.id, "42")
-      XCTAssertEqual(loginTriggered, true)
+      XCTAssertEqual(loginTriggered, false)
+   }
+   
+   func test04_logout() async throws {
+      Iaphub.logout()
    }
 
-   func test04_buy() async throws {
+   func test05_buy() async throws {
       
       XCTAssertEqual(Iaphub.shared.storekit.purchasedTransactionQueue?.waiting.count, 0)
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
@@ -179,7 +182,29 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(transaction.purchaseDate?.timeIntervalSince1970, 1590111280.462)
    }
    
-   func test05_buy_user_conflict() async throws {
+   func test06_loginWithServer() async throws {
+      var loginTriggered = false
+      // Mock login request
+      Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
+         if (route.contains("/login")) {
+            loginTriggered = true
+            XCTAssertEqual(params["userId"] as? String, "42")
+            XCTAssertEqual(route.contains("a:"), true)
+         }
+         return nil
+      }
+      try await Iaphub.login(userId: "42")
+      XCTAssertEqual(Iaphub.shared.user?.id, "42")
+      XCTAssertEqual(loginTriggered, true)
+      
+      Iaphub.logout()
+      loginTriggered = false
+      try await Iaphub.login(userId: "43")
+      XCTAssertEqual(Iaphub.shared.user?.id, "43")
+      XCTAssertEqual(loginTriggered, false)
+   }
+   
+   func test07_buy_user_conflict() async throws {
       
       XCTAssertEqual(Iaphub.shared.storekit.purchasedTransactionQueue?.waiting.count, 0)
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
@@ -234,7 +259,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(self.delegate.errorCount, 1)
    }
 
-   func test06_detectUserUpdate() async throws {
+   func test08_detectUserUpdate() async throws {
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (type == "GET" && route.contains("/user")) {
             return [
@@ -273,7 +298,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(activeProducts[0].expirationDate?.timeIntervalSince1970, 1684719280.462)
    }
 
-   func test07_restore() async throws {
+   func test09_restore() async throws {
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (route.contains("/receipt")) {
             return [
@@ -299,7 +324,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(self.delegate.processReceiptCount, 1)
    }
    
-   func test08_setTags() async throws {
+   func test10_setTags() async throws {
       // Add tag
       try await Iaphub.setUserTags(tags: ["group": "1"])
       XCTAssertEqual(self.delegate.errorCount, 0)
@@ -308,7 +333,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(self.delegate.errorCount, 0)
    }
    
-   func test09_setDeviceParams() async throws {
+   func test11_setDeviceParams() async throws {
       Iaphub.setDeviceParams(params: ["appVersion": "2.0.0"])
       XCTAssertEqual(Iaphub.shared.deviceParams.count, 1)
       XCTAssertEqual(Iaphub.shared.user?.needsFetch, true)
@@ -323,7 +348,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(Iaphub.shared.user?.needsFetch, true)
    }
    
-   func test10_getActiveProducts() async throws {
+   func test12_getActiveProducts() async throws {
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (type == "GET" && route.contains("/user")) {
             return [
@@ -401,7 +426,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(allActiveProducts[1].localizedTitle, nil)
    }
    
-   func test11_concurrentFetch() throws {
+   func test13_concurrentFetch() throws {
       IHUtil.deleteFromKeychain(key: "iaphub_user_a_61718bfd9bf07f0c7d2357d1")
       IHUtil.deleteFromKeychain(key: "iaphub_user_61718bfd9bf07f0c7d2357d1")
       
@@ -427,7 +452,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(count, 6)
    }
    
-   func test12_consumeDeferredPurchase() async throws {
+   func test14_consumeDeferredPurchase() async throws {
       var requestCount = 0
       
       // The deferred purchase events should be consumed by default
@@ -463,7 +488,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(requestCount, 2)
    }
    
-   func test13_getDeferredPurchaseEvent() async throws {
+   func test15_getDeferredPurchaseEvent() async throws {
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (type == "GET" && route.contains("/user")) {
             return [
@@ -493,7 +518,7 @@ class IaphubTests: XCTestCase {
       Iaphub.shared.user?.fetchDate = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 60 * 60 * 25)
       
       try await Iaphub.getActiveProducts()
-
+      
       XCTAssertEqual(self.delegate.deferredPurchases.count, 1)
       XCTAssertEqual(self.delegate.deferredPurchases[0].id, "21781dff9bf02f0c6d32c5a7")
    }
