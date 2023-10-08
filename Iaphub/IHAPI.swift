@@ -34,7 +34,7 @@ class IHAPI {
       var params: [String: Any] = [:]
       // Add updateDate parameter
       if (self.user.updateDate != nil) {
-         params["updateDate"] = "\(Int64((self.user.updateDate!.timeIntervalSince1970 * 1000).rounded())))"
+         params["updateDate"] = "\(Int64((self.user.updateDate!.timeIntervalSince1970 * 1000).rounded()))"
       }
       // Add deferredPurchase parameter
       if (self.user.enableDeferredPurchaseListener == false) {
