@@ -47,6 +47,7 @@ class IaphubTests: XCTestCase {
    
    var delegate: IaphubTestsDelegate!
    var testSession: SKTestSession!
+   var enableStorekitV2: Bool = true // Update this variable to switch StoreKit V1/V2
    
    override func setUpWithError() throws {
       self.testSession = try SKTestSession(configurationFileNamed: "Configuration")
@@ -64,10 +65,15 @@ class IaphubTests: XCTestCase {
          Iaphub.start(
             appId: "61718bfd9bf07f0c7d2357d1",
             apiKey: "Usaw9viZNrnYdNSwPIFFo7iUxyjK23K3",
-            allowAnonymousPurchase: true
+            allowAnonymousPurchase: true,
+            enableStorekitV2: self.enableStorekitV2
          )
          iaphubStarted = true
       }
+   }
+   
+   func test000_billingVersion() async throws {
+      XCTAssertEqual(Iaphub.shared.storekit?.version, self.enableStorekitV2 ? 2 : 1)
    }
 
    func test00_billingUnavailable() async throws {
@@ -143,8 +149,6 @@ class IaphubTests: XCTestCase {
    }
 
    func test05_buy() async throws {
-      
-      XCTAssertEqual(Iaphub.shared.storekit.purchasedTransactionQueue?.waiting.count, 0)
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (route.contains("/receipt")) {
             return [
@@ -166,7 +170,6 @@ class IaphubTests: XCTestCase {
       }
 
       let transaction = try await Iaphub.buy(sku: "consumable")
-      XCTAssertEqual(Iaphub.shared.storekit.purchasedTransactionQueue?.waiting.count, 0)
       XCTAssertEqual(self.delegate.errorCount, 0)
       XCTAssertEqual(self.delegate.userUpdateCount, 0)
       XCTAssertEqual(self.delegate.processReceiptCount, 1)
@@ -205,8 +208,6 @@ class IaphubTests: XCTestCase {
    }
    
    func test07_buy_user_conflict() async throws {
-      
-      XCTAssertEqual(Iaphub.shared.storekit.purchasedTransactionQueue?.waiting.count, 0)
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (type == "GET" && route.contains("/user")) {
             return [
@@ -321,7 +322,10 @@ class IaphubTests: XCTestCase {
 
       try await Iaphub.restore()
       XCTAssertEqual(self.delegate.errorCount, 0)
-      XCTAssertEqual(self.delegate.processReceiptCount, 1)
+      // StoreKit V2 doesn't return a receipt if no transactions found during restore
+      if (Iaphub.shared.storekit?.version == 1) {
+         XCTAssertEqual(self.delegate.processReceiptCount, 1)
+      }
    }
    
    func test10_setTags() async throws {

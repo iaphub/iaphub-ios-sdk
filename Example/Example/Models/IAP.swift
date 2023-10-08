@@ -25,7 +25,8 @@ class IAP: ObservableObject {
    func refreshProducts() {
       Iaphub.getProducts { err, products in
          guard err == nil, let products = products else {
-            print("-> refresh products error: \(err?.localizedDescription)")
+
+            
             return
          }
          self.productsForSale = products.productsForSale

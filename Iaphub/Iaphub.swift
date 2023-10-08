@@ -22,8 +22,8 @@ import UIKit
    
    static let shared = Iaphub()
 
-   var storekit: IHStoreKit
    var testing: IHSDKTesting
+   var storekit: IHStoreKit? = nil
    var user: IHUser? = nil
 
    var appId: String = ""
@@ -41,7 +41,6 @@ import UIKit
    @objc public static weak var delegate: IaphubDelegate?
 
    override private init() {
-      self.storekit = IHStoreKit()
       self.testing = IHSDKTesting()
       super.init()
    }
@@ -54,6 +53,7 @@ import UIKit
     - parameter userId: The id of the user
     - parameter allowAnonymousPurchase: If purchase without being logged in are allowed
     - parameter enableDeferredPurchaseListener: If enabled the didReceiveDeferredPurchase event will be triggered (true by default)
+    - parameter enableStorekitV2: If enabled StoreKit V2 will be enabled on iOS 15+ (false by default)
     - parameter environment: App environment ("production" by default)
     - parameter sdk:Parent sdk using the IAPHUB IOS SDK ('react_native', 'flutter', 'cordova')
     - parameter sdkVersion:Parent sdk version
@@ -64,6 +64,7 @@ import UIKit
       userId: String? = nil,
       allowAnonymousPurchase: Bool = false,
       enableDeferredPurchaseListener: Bool = true,
+      enableStorekitV2: Bool = false,
       environment: String = "production",
       sdk: String = "",
       sdkVersion: String = "")
@@ -96,11 +97,34 @@ import UIKit
       }
       // If it isn't been started yet
       if (shared.isStarted == false) {
+         // Create storekit
+         if (shared.storekit == nil) {
+            if #available(iOS 15.0, *), enableStorekitV2 == true {
+               shared.storekit = IHStoreKit2()
+            } else {
+               shared.storekit = IHStoreKit1()
+            }
+         }
          // Start storekit
          shared.startStoreKit()
          // Register observers to detect app going to background/foreground
          NotificationCenter.default.addObserver(shared, selector: #selector(shared.onAppBackground), name: UIApplication.willResignActiveNotification, object: nil)
          NotificationCenter.default.addObserver(shared, selector: #selector(shared.onAppForeground), name: UIApplication.didBecomeActiveNotification, object: nil)
+      }
+      // If it has already been started
+      else {
+         // Check if we need to switch the StoreKit version
+         if #available(iOS 15.0, *) {
+            if (enableStorekitV2 == true && shared.storekit?.version == 1) {
+               shared.storekit?.stop()
+               shared.storekit = IHStoreKit2()
+            }
+            else if (enableStorekitV2 == false && shared.storekit?.version == 2) {
+               shared.storekit?.stop()
+               shared.storekit = IHStoreKit1()
+            }
+            shared.startStoreKit()
+         }
       }
       // Mark as started
       shared.isStarted = true
@@ -113,7 +137,7 @@ import UIKit
       // Only if not already stopped
       if (shared.isStarted == true) {
          // Stop storekit
-         shared.storekit.stop();
+         shared.storekit?.stop();
          // Remove observers
          NotificationCenter.default.removeObserver(shared, name: UIApplication.willResignActiveNotification, object: nil)
          NotificationCenter.default.removeObserver(shared, name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -263,8 +287,12 @@ import UIKit
     Show manage subscriptions
     */
    @objc public class func showManageSubscriptions(_ completion: @escaping (IHError?) -> Void) {
+      // Check the sdk is started
+      guard let storekit = shared.storekit else {
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "showManageSubscriptions failed"))
+      }
       // Call StoreKit method
-      shared.storekit.showManageSubscriptions(completion)
+      storekit.showManageSubscriptions(completion)
    }
 
    /**
@@ -272,7 +300,7 @@ import UIKit
     */
    @objc public class func presentCodeRedemptionSheet(_ completion: @escaping (IHError?) -> Void) {
       // Check the sdk is started
-      guard let user = shared.user else {
+      guard let user = shared.user, let storekit = shared.storekit else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "presentCodeRedemptionSheet failed"))
       }
       // Check if anonymous purchases are allowed
@@ -280,7 +308,7 @@ import UIKit
          return completion(IHError(IHErrors.anonymous_purchase_not_allowed))
       }
       // Present code redemption
-      shared.storekit.presentCodeRedemptionSheet(completion)
+      storekit.presentCodeRedemptionSheet(completion)
    }
    
    /***************************** PRIVATE ******************************/
@@ -304,7 +332,9 @@ import UIKit
     */
    @objc private func onAppBackground() {
       // Pause storekit
-      self.storekit.pause();
+      if let storekit = self.storekit {
+         storekit.pause();
+      }
    }
    
    /**
@@ -312,7 +342,9 @@ import UIKit
     */
    @objc private func onAppForeground() {
       // Resume storekit
-      self.storekit.resume();
+      if let storekit = self.storekit {
+         storekit.resume();
+      }
       // Refresh user (only if it has already been fetched)
       if let user = self.user, user.fetchDate != nil {
          user.refresh()
@@ -323,8 +355,12 @@ import UIKit
     Start storekit
     */
    private func startStoreKit() {
+      // Check the sdk is started
+      guard let storekit = self.storekit else {
+         return
+      }
       // Start storekit
-      self.storekit.start(
+      storekit.start(
          // Event triggered when a new receipt is available
          onReceipt: { (receipt, finish) in
             var error: IHError? = nil

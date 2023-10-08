@@ -148,6 +148,10 @@ import Foundation
     Buy product
     */
    func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
+      // Check the sdk is started
+      guard let storekit = self.sdk.storekit else {
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing), nil)
+      }
       // Refresh user
       self.refresh({ (err, isFetched, isUpdated) in
          // Check if there is an error
@@ -155,7 +159,7 @@ import Foundation
             return completion(err, nil)
          }
          // Get product
-         self.sdk.storekit.getSkProduct(sku) { err, product in
+         storekit.getProductDetails(sku) { err, product in
             // Check if there is an error
             guard let product = product else {
                return completion(err, nil)
@@ -163,10 +167,7 @@ import Foundation
             // Try to get the product from the products for sale
             let productForSale = self.productsForSale.first(where: {$0.sku == sku})
             // Detect if the product has a subscription period (it means it is a subscription)
-            var hasSubscriptionPeriod = false
-            if #available(iOS 11.2, *) {
-               hasSubscriptionPeriod = (product.subscriptionPeriod != nil) ? true : false
-            }
+            var hasSubscriptionPeriod = product.subscriptionDuration != nil
             // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
             if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
                // Check cross platform conflicts
@@ -181,7 +182,7 @@ import Foundation
                }
             }
             // Launch purchase
-            self.sdk.storekit.buy(product, completion)
+            storekit.buy(sku, completion)
          }
       })
    }
@@ -499,9 +500,12 @@ import Foundation
          // Filter empty sku (could happen with an active product from another platform)
          .filter({(sku) in sku != ""})
       )
-      
+      // Check the sdk is started
+      guard let storekit = self.sdk.storekit else {
+         return completion()
+      }
       // Get products details
-      self.sdk.storekit.getProductsDetails(productSkus, { (err, productsDetails) in
+      storekit.getProductsDetails(productSkus, { (err, productsDetails) in
          // Note: We're not calling with completion handler with the error of getProductsDetails
          // We need to complete the update even though an error such as 'billing_unavailable' is returned
          // When there is an error getProductsDetails can still return products details (they might be in cache)
@@ -512,7 +516,13 @@ import Foundation
             products
             .filter { (product) in product.sku == productDetail.sku}
             .forEach { product in
+               // Set product details
                product.setDetails(productDetail)
+               // StoreKit V1 does not detect the intro phase eligibility automatically
+               // We have to do it manually with the 'subscriptionPeriodType' property from the API
+               if let subscriptionPeriodType = product.data["subscriptionPeriodType"] as? String, storekit.version == 1 {
+                  product.filterIntroPhases(subscriptionPeriodType)
+               }
             }
          })
          // Call completion
@@ -863,6 +873,10 @@ import Foundation
     Restore
    */
    func restore(_ completion: @escaping (IHError?, IHRestoreResponse?) -> Void) {
+      // Check the sdk is started
+      guard let storekit = self.sdk.storekit else {
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing), nil)
+      }
       // Reinitialize restoredDeferredPurchases array
       self.restoredDeferredPurchases = []
       // Mark as restoring
@@ -870,7 +884,7 @@ import Foundation
       // Save old active products
       let oldActiveProducts = self.activeProducts
       // Launch restore
-      self.sdk.storekit.restore({ (err) in
+      storekit.restore({ (err) in
          // Update updateDate
          self.updateDate = Date()
          // Refresh user

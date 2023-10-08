@@ -84,6 +84,7 @@ enum IHNetworkErrors : String, IHErrorProtocol {
 enum IHUnexpectedErrors : String, IHErrorProtocol {
 
    case storekit = "an unexpected storekit error has happened"
+   case storekit_purchase_verification_failed = "storekit purchase verification failed"
    case start_missing = "iaphub not started"
    case receipt_validation_response_invalid = "receipt validation failed, response invalid"
    case product_parsing_failed = "product parsing from data failed"
