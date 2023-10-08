@@ -13,13 +13,15 @@
 		9653128327E4104D00BE1D46 /* IHLogLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9653128227E4104D00BE1D46 /* IHLogLimit.swift */; };
 		9671F97828A9BA2700405B78 /* IHProductDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9671F97728A9BA2700405B78 /* IHProductDetails.swift */; };
 		9671F97A28A9C49D00405B78 /* IHSubscriptionIntroPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9671F97928A9C49D00405B78 /* IHSubscriptionIntroPhase.swift */; };
+		96950A352AB36593001AA4CA /* IHStoreKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96950A342AB36593001AA4CA /* IHStoreKit.swift */; };
+		96C71A9F2AB2002A0014166B /* IHStoreKit2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C71A9E2AB2002A0014166B /* IHStoreKit2.swift */; };
 		96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CBD49C271F5F0900B9ECCB /* IHParsable.swift */; };
 		96CF814C2969CF1D00EFB129 /* IHBillingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CF814B2969CF1D00EFB129 /* IHBillingStatus.swift */; };
 		96CF814E296A1E6800EFB129 /* IHSDKTesting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CF814D296A1E6800EFB129 /* IHSDKTesting.swift */; };
 		96CFA0A624F82B1900793E42 /* IHUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A524F82B1900793E42 /* IHUser.swift */; };
 		96CFA0A824F82BAA00793E42 /* IHProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0A724F82BAA00793E42 /* IHProduct.swift */; };
 		96CFA0B224F89AC000793E42 /* IHError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0B124F89AC000793E42 /* IHError.swift */; };
-		96CFA0B424FBF3B200793E42 /* IHStoreKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */; };
+		96CFA0B424FBF3B200793E42 /* IHStoreKit1.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CFA0B324FBF3B100793E42 /* IHStoreKit1.swift */; };
 		96DFDDA2252390CA00A0795A /* IHProductPricing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDA1252390CA00A0795A /* IHProductPricing.swift */; };
 		96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDAD25276C9D00A0795A /* IHReceipt.swift */; };
 		96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DFDDB12527A78100A0795A /* IHActiveProduct.swift */; };
@@ -41,13 +43,15 @@
 		9653128227E4104D00BE1D46 /* IHLogLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHLogLimit.swift; sourceTree = "<group>"; };
 		9671F97728A9BA2700405B78 /* IHProductDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProductDetails.swift; sourceTree = "<group>"; };
 		9671F97928A9C49D00405B78 /* IHSubscriptionIntroPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHSubscriptionIntroPhase.swift; sourceTree = "<group>"; };
+		96950A342AB36593001AA4CA /* IHStoreKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHStoreKit.swift; sourceTree = "<group>"; };
+		96C71A9E2AB2002A0014166B /* IHStoreKit2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHStoreKit2.swift; sourceTree = "<group>"; };
 		96CBD49C271F5F0900B9ECCB /* IHParsable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHParsable.swift; sourceTree = "<group>"; };
 		96CF814B2969CF1D00EFB129 /* IHBillingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHBillingStatus.swift; sourceTree = "<group>"; };
 		96CF814D296A1E6800EFB129 /* IHSDKTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHSDKTesting.swift; sourceTree = "<group>"; };
 		96CFA0A524F82B1900793E42 /* IHUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHUser.swift; sourceTree = "<group>"; };
 		96CFA0A724F82BAA00793E42 /* IHProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProduct.swift; sourceTree = "<group>"; };
 		96CFA0B124F89AC000793E42 /* IHError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHError.swift; sourceTree = "<group>"; };
-		96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHStoreKit.swift; sourceTree = "<group>"; };
+		96CFA0B324FBF3B100793E42 /* IHStoreKit1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHStoreKit1.swift; sourceTree = "<group>"; };
 		96DFDDA1252390CA00A0795A /* IHProductPricing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHProductPricing.swift; sourceTree = "<group>"; };
 		96DFDDAD25276C9D00A0795A /* IHReceipt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHReceipt.swift; sourceTree = "<group>"; };
 		96DFDDB12527A78100A0795A /* IHActiveProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IHActiveProduct.swift; sourceTree = "<group>"; };
@@ -105,7 +109,9 @@
 				9653128027D578F100BE1D46 /* IHErrors.swift */,
 				96CFA0A524F82B1900793E42 /* IHUser.swift */,
 				96FD8CBF24DDA4CF00122612 /* IHAPI.swift */,
-				96CFA0B324FBF3B100793E42 /* IHStoreKit.swift */,
+				96950A342AB36593001AA4CA /* IHStoreKit.swift */,
+				96CFA0B324FBF3B100793E42 /* IHStoreKit1.swift */,
+				96C71A9E2AB2002A0014166B /* IHStoreKit2.swift */,
 				96FD8CC324DDA8D800122612 /* IHNetwork.swift */,
 				96E16E3A2631EE440003C857 /* IHQueue.swift */,
 				96E16E3E26334AAD0003C857 /* IHUtil.swift */,
@@ -210,16 +216,18 @@
 				96DFDDAE25276C9D00A0795A /* IHReceipt.swift in Sources */,
 				96CF814C2969CF1D00EFB129 /* IHBillingStatus.swift in Sources */,
 				96DFDDB22527A78100A0795A /* IHActiveProduct.swift in Sources */,
-				96CFA0B424FBF3B200793E42 /* IHStoreKit.swift in Sources */,
+				96CFA0B424FBF3B200793E42 /* IHStoreKit1.swift in Sources */,
 				9671F97A28A9C49D00405B78 /* IHSubscriptionIntroPhase.swift in Sources */,
 				96CF814E296A1E6800EFB129 /* IHSDKTesting.swift in Sources */,
 				96CBD49D271F5F0900B9ECCB /* IHParsable.swift in Sources */,
 				96E16E3B2631EE440003C857 /* IHQueue.swift in Sources */,
+				96950A352AB36593001AA4CA /* IHStoreKit.swift in Sources */,
 				96F997C2294708F80044EEE5 /* IHEvent.swift in Sources */,
 				9671F97828A9BA2700405B78 /* IHProductDetails.swift in Sources */,
 				96CFA0B224F89AC000793E42 /* IHError.swift in Sources */,
 				96DFDDA2252390CA00A0795A /* IHProductPricing.swift in Sources */,
 				96FD8CC424DDA8D800122612 /* IHNetwork.swift in Sources */,
+				96C71A9F2AB2002A0014166B /* IHStoreKit2.swift in Sources */,
 				96DFDDB82527BB4B00A0795A /* IHReceiptResponse.swift in Sources */,
 				96CFA0A824F82BAA00793E42 /* IHProduct.swift in Sources */,
 				96FD8CC024DDA4CF00122612 /* IHAPI.swift in Sources */,

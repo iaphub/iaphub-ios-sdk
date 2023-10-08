@@ -88,10 +88,52 @@ class IHLocalizedError: LocalizedError {
       
       self.init(err, suberr, message: message)
    }
+   
+   @available(iOS 15.0, *)
+   convenience init(_ error: StoreKitError, params: Dictionary<String, Any> = [:], silent: Bool = false) {
+      var err = IHErrors.unexpected
+      var suberr: IHErrorProtocol? = nil
+      var message: String? = nil
+      
+      switch error {
+         case .networkError:
+            err = IHErrors.network_error
+            suberr = IHNetworkErrors.storekit_request_failed
+            break
+         case .userCancelled:
+            err = IHErrors.user_cancelled
+            break
+         case .systemError(let systemError):
+            err = IHErrors.unexpected
+            suberr = IHUnexpectedErrors.storekit
+            message = systemError.localizedDescription
+            break
+         case .notAvailableInStorefront:
+            err = IHErrors.billing_unavailable
+            message = "not available on this storefront"
+            break
+         case .notEntitled:
+            err = IHErrors.unexpected
+            suberr = IHUnexpectedErrors.storekit
+            message = "the app doesn’t have the appropriate entitlements"
+            break
+         default:
+            err = IHErrors.unexpected
+            suberr = IHUnexpectedErrors.storekit
+            message = error.localizedDescription
+            break
+      }
+      
+      self.init(err, suberr, message: message)
+   }
 
    convenience init(_ error: Error?) {
       if let error = error {
-         if let skError = error as? SKError {
+         if #available(iOS 15.0, *), let skError = error as? StoreKitError {
+            self.init(skError)
+            return
+         }
+         else if let skError = error as? SKError {
             self.init(skError)
             return
          }
