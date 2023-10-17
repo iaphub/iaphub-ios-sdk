@@ -487,10 +487,8 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
             if let details = details {
                receiptTransaction?.setDetails(details)
             }
-            // Call request callback back to the main thread
-            DispatchQueue.main.async {
-               buyRequest.completion(err, receiptTransaction)
-            }
+            // Call request callback
+            buyRequest.completion(err, receiptTransaction)
          }
       }
    }
@@ -504,10 +502,8 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
       }
       // Remove request
       self.buyRequest = nil
-      // Call request callback back to the main thread
-      DispatchQueue.main.async {
-         buyRequest.completion(err, nil)
-      }
+      // Call request callback
+      buyRequest.completion(err, nil)
    }
    
    /***************************** SKPaymentTransactionObserver ******************************/

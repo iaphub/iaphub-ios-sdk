@@ -154,7 +154,11 @@ import UIKit
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "login failed"))
       }
       // Log in user
-      user.login(userId, completion);
+      user.login(userId) { err in
+         DispatchQueue.main.async {
+            completion(err)
+         }
+      }
    }
    
    /**
@@ -196,7 +200,11 @@ import UIKit
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "setUserTags failed"))
       }
       // Set tags
-      user.setTags(tags, completion)
+      user.setTags(tags) { err in
+         DispatchQueue.main.async {
+            completion(err)
+         }
+      }
    }
    
    /**
@@ -212,7 +220,11 @@ import UIKit
          return completion(IHError(IHErrors.anonymous_purchase_not_allowed), nil)
       }
       // Buy product
-      user.buy(sku: sku, crossPlatformConflict: crossPlatformConflict, completion)
+      user.buy(sku: sku, crossPlatformConflict: crossPlatformConflict) { err, transaction in
+         DispatchQueue.main.async {
+            completion(err, transaction)
+         }
+      }
    }
    
    /**
@@ -231,7 +243,9 @@ import UIKit
       shared.isRestoring = true
       user.restore({ (err, response) in
          shared.isRestoring = false
-         completion(err, response)
+         DispatchQueue.main.async {
+            completion(err, response)
+         }
       })
    }
 
@@ -244,7 +258,11 @@ import UIKit
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getActiveProducts failed"), nil)
       }
       // Return active products
-      user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
+      user.getActiveProducts(includeSubscriptionStates: includeSubscriptionStates) { err, products in
+         DispatchQueue.main.async {
+            completion(err, products)
+         }
+      }
    }
 
    /**
@@ -256,7 +274,11 @@ import UIKit
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProductsForSale failed"), nil)
       }
       // Return products for sale
-      user.getProductsForSale(completion)
+      user.getProductsForSale { err, products in
+         DispatchQueue.main.async {
+            completion(err, products)
+         }
+      }
    }
    
    /**
@@ -268,7 +290,11 @@ import UIKit
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "getProducts failed"), nil)
       }
       // Return products
-      user.getProducts(includeSubscriptionStates: includeSubscriptionStates, completion)
+      user.getProducts(includeSubscriptionStates: includeSubscriptionStates) { err, products in
+         DispatchQueue.main.async {
+            completion(err, products)
+         }
+      }
    }
    
    /**
@@ -292,7 +318,11 @@ import UIKit
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing, message: "showManageSubscriptions failed"))
       }
       // Call StoreKit method
-      storekit.showManageSubscriptions(completion)
+      storekit.showManageSubscriptions { err in
+         DispatchQueue.main.async {
+            completion(err)
+         }
+      }
    }
 
    /**
@@ -308,24 +338,61 @@ import UIKit
          return completion(IHError(IHErrors.anonymous_purchase_not_allowed))
       }
       // Present code redemption
-      storekit.presentCodeRedemptionSheet(completion)
+      storekit.presentCodeRedemptionSheet { err in
+         DispatchQueue.main.async {
+            completion(err)
+         }
+      }
    }
    
-   /***************************** PRIVATE ******************************/
+   /***************************** EVENTS ******************************/
    
    /**
     Triggered when a user update is detected
    */
    private func onUserUpdate() {
-      Self.delegate?.didReceiveUserUpdate?()
+      DispatchQueue.main.async {
+         Self.delegate?.didReceiveUserUpdate?()
+      }
    }
    
    /**
     Triggered when a deferred purchase is detected
    */
    private func onDeferredPurchase(transaction: IHReceiptTransaction) {
-      Self.delegate?.didReceiveDeferredPurchase?(transaction: transaction)
+      DispatchQueue.main.async {
+         Self.delegate?.didReceiveDeferredPurchase?(transaction: transaction)
+      }
    }
+   
+   /**
+    Triggered when a receipt is processed
+   */
+   private func onProcessReceipt(err: IHError?, receipt: IHReceipt?) {
+      DispatchQueue.main.async {
+         Self.delegate?.didProcessReceipt?(err: err, receipt: receipt)
+      }
+   }
+   
+   /**
+    Triggered when a buy request is detected
+   */
+   private func onBuyRequest(sku: String) {
+      DispatchQueue.main.async {
+         Self.delegate?.didReceiveBuyRequest?(sku: sku)
+      }
+   }
+   
+   /**
+    Triggered when an error is created
+   */
+   internal func onError(err: IHError) {
+      DispatchQueue.main.async {
+         Self.delegate?.didReceiveError?(err: err)
+      }
+   }
+   
+   /***************************** PRIVATE ******************************/
    
    /**
    Triggerred when the app is going to the background
@@ -370,8 +437,8 @@ import UIKit
             func callFinish() {
                // Finish receipt
                finish(error, shouldFinishReceipt, transaction)
-               // Trigger didProcessReceipt event
-               Self.delegate?.didProcessReceipt?(err: error, receipt: receipt)
+               // Trigger event
+               self.onProcessReceipt(err: error, receipt: receipt)
             }
             // Check the sdk is started
             guard let user = self.user else {
@@ -485,7 +552,7 @@ import UIKit
          onBuyRequest: { (sku) in
             // Call didReceiveBuyRequest event if defined
             if (Self.delegate?.didReceiveBuyRequest != nil) {
-               Self.delegate?.didReceiveBuyRequest?(sku: sku)
+               self.onBuyRequest(sku: sku)
             }
             // Otherwise call buy method directly
             else {

@@ -428,10 +428,8 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
             if let details = details {
                receiptTransaction?.setDetails(details)
             }
-            // Call request callback back to the main thread
-            DispatchQueue.main.async {
-               buyRequest.completion(err, receiptTransaction)
-            }
+            // Call completion
+            buyRequest.completion(err, receiptTransaction)
          }
       }
    }
@@ -545,10 +543,8 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
          return;
       }
       self.restoreRequest = nil
-      // Call request callback back to the main thread
-      DispatchQueue.main.async {
-         restoreRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.restore_timeout));
-      }
+      // Call request callback
+      restoreRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.restore_timeout));
    }
    
    /***************************** SKProductsRequestDelegate ******************************/
@@ -566,13 +562,11 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
       // Try to get the products from the cache
       let cachedProducts = self.products.filter { (product) in item.skus.contains(product.productIdentifier) == true }
       // Call completion
-      DispatchQueue.main.async {
-         if let skError = error as? SKError {
-            item.completion(IHError(skError), cachedProducts)
-         }
-         else {
-            item.completion(IHError(error), cachedProducts)
-         }
+      if let skError = error as? SKError {
+         item.completion(IHError(skError), cachedProducts)
+      }
+      else {
+         item.completion(IHError(error), cachedProducts)
       }
    }
    
@@ -593,11 +587,9 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
             self.products.append(product)
          }
       })
-      // Call request callback back to the main thread
+      // Call request callback
       if (item != nil) {
-         DispatchQueue.main.async {
-            item?.completion(nil, response.products)
-         }
+         item?.completion(nil, response.products)
       }
    }
    
@@ -652,14 +644,12 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
       }
       self.restoreTimer?.invalidate()
       self.restoreRequest = nil
-      // Call request callback back to the main thread
-      DispatchQueue.main.async {
-         if let skError = error as? SKError {
-            restoreRequest(IHError(skError));
-         }
-         else {
-            restoreRequest(IHError(error));
-         }
+      // Call request callback
+      if let skError = error as? SKError {
+         restoreRequest(IHError(skError));
+      }
+      else {
+         restoreRequest(IHError(error));
       }
    }
    
@@ -682,10 +672,8 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
       let receipt = IHReceipt(token: token, sku: "", context: "restore")
       // Call receipt listener
       self.onReceipt?(receipt, { (err, shouldFinish, response) in
-         // Call request callback back to the main thread
-         DispatchQueue.main.async {
-            restoreRequest(err);
-         }
+         // Call request callback
+         restoreRequest(err);
       })
    }
    

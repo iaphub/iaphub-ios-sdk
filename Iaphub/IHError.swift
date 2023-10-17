@@ -168,7 +168,7 @@ class IHLocalizedError: LocalizedError {
     Trigger error listener
    */
    func triggerDelegate() {
-      Iaphub.delegate?.didReceiveError?(err: self)
+      Iaphub.shared.onError(err: self)
    }
    
    /**
