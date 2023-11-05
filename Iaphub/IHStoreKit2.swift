@@ -27,6 +27,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
    
    
    var version: Int = 2
+   var products: [Product] = []
    var onReceipt: ((IHReceipt, @escaping ((IHError?, Bool, IHReceiptTransaction?) -> Void)) -> Void)? = nil
    var onBuyRequest: ((String) -> Void)? = nil
    var buyRequest: (product: Product, completion: (IHError?, IHReceiptTransaction?) -> Void)? = nil
@@ -95,10 +96,6 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
    public func getProductsDetails(_ skus: Set<String>, _ completion: @escaping (IHError?, [IHProductDetails]?) -> Void) {
       // Get products
       self.getProducts(skus) { err, products in
-         // Check error
-         guard err == nil, let products = products else {
-            return completion(err ?? IHError(IHErrors.unexpected), nil)
-         }
          // Convert products to productDetails
          Task {
             let productDetails = await products
@@ -116,18 +113,20 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                      if let subscription = product.subscription {
                         data["subscriptionDuration"] = self.convertToISO8601(subscription.subscriptionPeriod)
                         // Subscription intro offer
-                        if let introOfffer = subscription.introductoryOffer {
+                        data["subscriptionIntroPhases"] = [[]]
+                        if let introOffer = subscription.introductoryOffer {
                            let isEligibleForIntroOffer = await subscription.isEligibleForIntroOffer
+
                            // Add only if eligible for intro offer
                            if (isEligibleForIntroOffer) {
                               data["subscriptionIntroPhases"] = [[
-                                 "type": (introOfffer.paymentMode == Product.SubscriptionOffer.PaymentMode.freeTrial) ? "free_trial" : "intro",
-                                 "price": round(Double(truncating: introOfffer.price as NSNumber) * 100) / 100,
+                                 "type": (introOffer.paymentMode == Product.SubscriptionOffer.PaymentMode.freeTrial) ? "free_trial" : "intro",
+                                 "price": round(Double(truncating: introOffer.price as NSNumber) * 100) / 100,
                                  "currency": product.priceFormatStyle.currencyCode,
-                                 "localizedPrice": introOfffer.displayPrice,
-                                 "cycleDuration": self.convertToISO8601(introOfffer.period),
-                                 "cycleCount": introOfffer.periodCount,
-                                 "payment": (introOfffer.paymentMode == Product.SubscriptionOffer.PaymentMode.payUpFront) ? "upfront" : "as_you_go"
+                                 "localizedPrice": introOffer.displayPrice,
+                                 "cycleDuration": self.convertToISO8601(introOffer.period),
+                                 "cycleCount": introOffer.periodCount,
+                                 "payment": (introOffer.paymentMode == Product.SubscriptionOffer.PaymentMode.payUpFront) ? "upfront" : "as_you_go"
                               ]]
                            }
                         }
@@ -141,7 +140,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                }
                .compactMap { $0 }
             // Call completion
-            completion(nil, productDetails)
+            completion(err, productDetails)
          }
       }
    }
@@ -395,9 +394,6 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
     */
    private func getProduct(_ sku: String, _ completion: @escaping (IHError?, Product?) -> Void) {
       self.getProducts([sku], { (err, products) in
-         guard let products = products else {
-            return completion(err, nil)
-         }
          if (products.count == 0) {
             return completion(IHError(IHErrors.product_not_available, params: ["sku": sku]), nil)
          }
@@ -408,19 +404,31 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
    /**
     Get  products
     */
-   private func getProducts(_ skus: Set<String>, _ completion: @escaping (IHError?, [Product]?) -> Void) {
+   private func getProducts(_ skus: Set<String>, _ completion: @escaping (IHError?, [Product]) -> Void) {
       // Check for testing
       if (Iaphub.shared.testing.billingUnavailable == true) {
-         return completion(IHError(IHErrors.billing_unavailable), nil)
+         return completion(IHError(IHErrors.billing_unavailable), [])
+      }
+      // Call completion is skus empty
+      if (skus.count == 0) {
+         return completion(nil, [])
       }
       
       Task {
          do {
             let products = try await Product.products(for: skus)
-            completion(nil , products)
+            // Update cached products
+            skus.forEach({ sku in
+               if let product = products.first(where: {$0.id == sku}) {
+                  self.products.removeAll(where: {$0.id == product.id})
+                  self.products.append(product)
+               }
+            })
+            
+            completion(nil , self.products.filter({ skus.contains($0.id) }))
          }
          catch {
-            completion(IHError(error), nil)
+            completion(IHError(error), self.products.filter({ skus.contains($0.id) }))
          }
       }
    }
