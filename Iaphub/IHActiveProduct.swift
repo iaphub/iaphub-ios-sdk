@@ -17,6 +17,8 @@ import StoreKit
    @objc public var purchaseDate: Date?
    // Platform of the purchase
    @objc public var platform: String?
+   // If it is a sandbox transaction
+   @objc public var isSandbox: Bool = false
    // If it has been purchased using a promo code
    @objc public var isPromo: Bool = false
    // Promo code used for the purchase
@@ -57,6 +59,7 @@ import StoreKit
          )
       })
       self.platform = data["platform"] as? String
+      self.isSandbox = (data["isSandbox"] as? Bool) ?? false
       self.isPromo = (data["isPromo"] as? Bool) ?? false
       self.promoCode = data["promoCode"] as? String
       // The following properties are for subscritions only
@@ -92,6 +95,7 @@ import StoreKit
          "purchase": self.purchase as Any,
          "purchaseDate": IHUtil.dateToIsoString(self.purchaseDate) as Any,
          "platform": self.platform as Any,
+         "isSandbox": self.isSandbox as Any,
          "isPromo": self.isPromo as Any,
          "promoCode": self.promoCode as Any,
          "originalPurchase": self.originalPurchase as Any,
