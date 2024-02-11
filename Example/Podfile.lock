@@ -1,5 +1,5 @@
 PODS:
-  - Iaphub (4.1.1)
+  - Iaphub (4.1.2)
 
 DEPENDENCIES:
   - Iaphub (from `../`)
@@ -9,8 +9,8 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
-  Iaphub: 958354c49215c25cd7b1842b45a9d6e3d45290f3
+  Iaphub: 1420cb1d191d57e2dbb0d03da875bfc2eeb96c1b
 
 PODFILE CHECKSUM: b319f9d3568fde04abe52f6ed91487583868bb24
 
-COCOAPODS: 1.11.3
+COCOAPODS: 1.12.1
