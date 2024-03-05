@@ -423,8 +423,11 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
          }
          // Remove request
          self.buyRequest = nil
-         // Get product details
-         self.getProductDetails(transaction.payment.productIdentifier) { _, details in
+         // Get product details if transaction present
+         guard let receiptTransactionSku = receiptTransaction?.sku else {
+            return buyRequest.completion(err, receiptTransaction)
+         }
+         self.getProductDetails(receiptTransactionSku) { _, details in
             if let details = details {
                receiptTransaction?.setDetails(details)
             }
