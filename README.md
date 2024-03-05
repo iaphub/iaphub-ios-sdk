@@ -61,7 +61,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // If you want to allow purchases when the user has an anonymous user id
         // If you're listenning to IAPHUB webhooks your implementation must support users with anonymous user ids
         // This option is disabled by default, when disabled the buy method will return an error when the user isn't logged in
-        allowAnonymousPurchase: true
+        allowAnonymousPurchase: true,
+
+        // Enable StoreKit V2 if supported by the phone (iOS 15+). If enabled, also ensure it's enabled in the IAPHUB dashboard settings.
+        // This option is currently in beta test
+        enableStorekitV2: true
       )
       return true
   }
