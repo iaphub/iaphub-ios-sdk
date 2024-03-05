@@ -13,11 +13,14 @@ import StoreKit
 class IHQueueItemData {
    // Transaction
    public var transaction: Transaction
-   // Product sku
+   // Sku
+   public var sku: String
+   // Context
    public var context: String
    
-   init(transaction: Transaction, context: String) {
+   init(transaction: Transaction, sku: String, context: String) {
       self.transaction = transaction
+      self.sku = sku
       self.context = context
    }
 }
@@ -191,22 +194,22 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                case .success(let verificationResult):
                   switch verificationResult {
                      case .verified(let transaction):
-                        self.transactionQueue?.add(IHQueueItemData(transaction: transaction, context: "purchase"))
+                        self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: product.id, context: "purchase"))
                         break
-                     case .unverified(let transaction, _):
+                     case .unverified(_, _):
                         // Successful purchase but verification failed (could be a jailbroken phone)
-                        self.processBuyRequest(transaction, IHError(IHErrors.unexpected, IHUnexpectedErrors.storekit_purchase_verification_failed), nil)
+                        self.processBuyRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.storekit_purchase_verification_failed), nil)
                         break
                   }
                   break
                case .pending:
-                  self.processBuyRequest(IHError(IHErrors.deferred_payment))
+                  self.processBuyRequest(IHError(IHErrors.deferred_payment), nil)
                   break
                case .userCancelled:
-                  self.processBuyRequest(IHError(IHErrors.user_cancelled))
+                  self.processBuyRequest(IHError(IHErrors.user_cancelled), nil)
                   break
                @unknown default:
-                  self.processBuyRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.storekit))
+                  self.processBuyRequest(IHError(IHErrors.unexpected, IHUnexpectedErrors.storekit), nil)
                   break
             }
          }
@@ -238,7 +241,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                return
             }
             // Add to transaction queue
-            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, context: "restore"))
+            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: transaction.productID, context: "restore"))
          }
          // Look for current entitlements
          for await verificationResult in Transaction.currentEntitlements {
@@ -247,7 +250,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                return
             }
             // Add to transaction queue
-            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, context: "restore"))
+            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: transaction.productID, context: "restore"))
          }
          // Resume transaction queue
          self.transactionQueue?.resume({ () in
@@ -323,7 +326,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                return
             }
             // Add transaction to queue
-            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, context: "refresh"))
+            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: transaction.productID, context: "refresh"))
          }
       }
    }
@@ -438,7 +441,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
     */
    private func processTransaction(_ data: IHQueueItemData, _ date: Date, _ completion: @escaping () -> Void) {
       // Create receipt
-      let receipt = IHReceipt(token: String(data.transaction.originalID), sku: data.transaction.productID, context: data.context)
+      let receipt = IHReceipt(token: String(data.transaction.originalID), sku: data.sku, context: data.context)
       // Prevent unnecessary receipts processing
       if (data.context != "purchase" &&
          (self.lastReceipt != nil) &&
@@ -464,7 +467,9 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
          receipt.isFinished = shouldFinish
          receipt.processDate = Date()
          // Process buy request
-         self.processBuyRequest(data.transaction, err, response)
+         if (self.buyRequest?.product.id == data.sku) {
+            self.processBuyRequest(err, response)
+         }
          // Call completion
          completion()
       })
@@ -482,36 +487,23 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
    /**
     Process buy request
     */
-   private func processBuyRequest(_ transaction: Transaction, _ err: IHError?, _ receiptTransaction: IHReceiptTransaction?) {
-      // Check if the product identifier match
-      if (self.buyRequest?.product.id == transaction.productID) {
-         guard let buyRequest = self.buyRequest else {
-            return
-         }
-         // Remove request
-         self.buyRequest = nil
-         // Get product details
-         self.getProductDetails(transaction.productID) { _, details in
-            if let details = details {
-               receiptTransaction?.setDetails(details)
-            }
-            // Call request callback
-            buyRequest.completion(err, receiptTransaction)
-         }
-      }
-   }
-   
-   /**
-    Process buy request
-    */
-   private func processBuyRequest(_ err: IHError?) {
+   private func processBuyRequest(_ err: IHError?, _ receiptTransaction: IHReceiptTransaction?) {
       guard let buyRequest = self.buyRequest else {
          return
       }
       // Remove request
       self.buyRequest = nil
-      // Call request callback
-      buyRequest.completion(err, nil)
+      // Get product details if transaction present
+      guard let receiptTransactionSku = receiptTransaction?.sku else {
+         return buyRequest.completion(err, receiptTransaction)
+      }
+      self.getProductDetails(receiptTransactionSku) { _, details in
+         if let details = details {
+            receiptTransaction?.setDetails(details)
+         }
+         // Call completion callback
+         buyRequest.completion(err, receiptTransaction)
+      }
    }
    
    /***************************** SKPaymentTransactionObserver ******************************/
