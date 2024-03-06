@@ -167,7 +167,7 @@ import Foundation
             // Try to get the product from the products for sale
             let productForSale = self.productsForSale.first(where: {$0.sku == sku})
             // Detect if the product has a subscription period (it means it is a subscription)
-            var hasSubscriptionPeriod = product.subscriptionDuration != nil
+            let hasSubscriptionPeriod = product.subscriptionDuration != nil
             // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
             if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
                // Check cross platform conflicts
