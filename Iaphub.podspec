@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'Iaphub'
-  s.version          = '4.2.0'
+  s.version          = '4.2.1'
   s.summary          = 'iOS IAPHUB SDK'
 
   s.description      = <<-DESC
