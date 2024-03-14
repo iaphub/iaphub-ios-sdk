@@ -13,13 +13,16 @@ import StoreKit
 class IHQueueItemData {
    // Transaction
    public var transaction: Transaction
+   // JWS representation
+   public var jwsRepresentation: String
    // Sku
    public var sku: String
    // Context
    public var context: String
    
-   init(transaction: Transaction, sku: String, context: String) {
+   init(transaction: Transaction, jwsRepresentation: String, sku: String, context: String) {
       self.transaction = transaction
+      self.jwsRepresentation = jwsRepresentation
       self.sku = sku
       self.context = context
    }
@@ -194,7 +197,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                case .success(let verificationResult):
                   switch verificationResult {
                      case .verified(let transaction):
-                        self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: product.id, context: "purchase"))
+                        self.transactionQueue?.add(IHQueueItemData(transaction: transaction, jwsRepresentation: verificationResult.jwsRepresentation, sku: product.id, context: "purchase"))
                         break
                      case .unverified(_, _):
                         // Successful purchase but verification failed (could be a jailbroken phone)
@@ -241,7 +244,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                return
             }
             // Add to transaction queue
-            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: transaction.productID, context: "restore"))
+            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, jwsRepresentation: verificationResult.jwsRepresentation, sku: transaction.productID, context: "restore"))
          }
          // Look for current entitlements
          for await verificationResult in Transaction.currentEntitlements {
@@ -250,7 +253,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                return
             }
             // Add to transaction queue
-            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: transaction.productID, context: "restore"))
+            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, jwsRepresentation: verificationResult.jwsRepresentation, sku: transaction.productID, context: "restore"))
          }
          // Resume transaction queue
          self.transactionQueue?.resume({ () in
@@ -326,7 +329,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                return
             }
             // Add transaction to queue
-            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, sku: transaction.productID, context: "refresh"))
+            self.transactionQueue?.add(IHQueueItemData(transaction: transaction, jwsRepresentation: verificationResult.jwsRepresentation, sku: transaction.productID, context: "refresh"))
          }
       }
    }
@@ -441,7 +444,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
     */
    private func processTransaction(_ data: IHQueueItemData, _ date: Date, _ completion: @escaping () -> Void) {
       // Create receipt
-      let receipt = IHReceipt(token: String(data.transaction.originalID), sku: data.sku, context: data.context, paymentProcessor: "app_store_v2")
+      let receipt = IHReceipt(token: data.jwsRepresentation, sku: data.sku, context: data.context, paymentProcessor: "app_store_v2")
       // Prevent unnecessary receipts processing
       if (data.context != "purchase" &&
          (self.lastReceipt != nil) &&
