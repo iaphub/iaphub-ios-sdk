@@ -17,16 +17,19 @@ import StoreKit
    public var sku: String
    // Receipt context
    public var context: String
+   // Payment processor
+   public var paymentProcessor: String
    // Receipt is finished
    public var isFinished: Bool
    // Receipt process date
    public var processDate: Date?
 
 
-   init(token: String, sku: String, context: String) {
+   init(token: String, sku: String, context: String, paymentProcessor: String) {
       self.token = token
       self.sku = sku
       self.context = context
+      self.paymentProcessor = paymentProcessor
       self.isFinished = false
    }
 
@@ -34,7 +37,8 @@ import StoreKit
       return [
          "token": self.token,
          "sku": self.sku,
-         "context": self.context
+         "context": self.context,
+         "paymentProcessor": self.paymentProcessor
       ]
    }
 }

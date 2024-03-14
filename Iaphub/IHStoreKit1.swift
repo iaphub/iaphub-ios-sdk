@@ -454,7 +454,7 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
          return completion()
       }
       // Create receipt
-      let receipt = IHReceipt(token: token, sku: transaction.payment.productIdentifier, context: context)
+      let receipt = IHReceipt(token: token, sku: transaction.payment.productIdentifier, context: context, paymentProcessor: "app_store_v1")
       // Prevent unnecessary receipts processing
       if (context == "refresh" &&
          (self.lastReceipt != nil) &&
@@ -672,7 +672,7 @@ class IHStoreKit1: NSObject, IHStoreKit, SKProductsRequestDelegate, SKPaymentTra
          return restoreRequest(nil)
       }
       // Create receipt object
-      let receipt = IHReceipt(token: token, sku: "", context: "restore")
+      let receipt = IHReceipt(token: token, sku: "", context: "restore", paymentProcessor: "app_store_v1")
       // Call receipt listener
       self.onReceipt?(receipt, { (err, shouldFinish, response) in
          // Call request callback

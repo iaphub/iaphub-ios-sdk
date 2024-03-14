@@ -441,7 +441,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
     */
    private func processTransaction(_ data: IHQueueItemData, _ date: Date, _ completion: @escaping () -> Void) {
       // Create receipt
-      let receipt = IHReceipt(token: String(data.transaction.originalID), sku: data.sku, context: data.context)
+      let receipt = IHReceipt(token: String(data.transaction.originalID), sku: data.sku, context: data.context, paymentProcessor: "app_store_v2")
       // Prevent unnecessary receipts processing
       if (data.context != "purchase" &&
          (self.lastReceipt != nil) &&
