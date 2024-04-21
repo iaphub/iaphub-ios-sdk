@@ -20,5 +20,7 @@ No more complex backend development to validate receipts, focus on your app inst
   
   s.source_files = ['Iaphub/**/*.{swift}']
 
+  s.resource_bundles = {"Iaphub" => ["Iaphub/PrivacyInfo.xcprivacy"]}
+
   s.frameworks = 'StoreKit'
 end
