@@ -284,36 +284,38 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
     Show manage subscriptions
     */
    public func showManageSubscriptions(_ completion: @escaping (IHError?) -> Void) {
-      if let currentWindowScene = IHUtil.getCurrentWindowScene() {
-         // Do not wait the callback that is called when the modal is dismissed
-         _ = Task.init {
-            do {
-               try await AppStore.showManageSubscriptions(in: currentWindowScene)
-            }
-            catch {
-               
-            }
-         }
-         // Call completion
-         completion(nil)
-      }
-      // Fallback to 'StoreKit v1' subscriptions page of the App Store
-      else {
-         if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
-            // canOpenURL & open must be executed on the main thread
-            DispatchQueue.main.async {
-               if UIApplication.shared.canOpenURL(url) {
-                  UIApplication.shared.open(url, options: [:])
-                  return completion(nil)
+      IHUtil.getCurrentWindowScene({ (currentWindowScene) in
+         if let currentWindowScene = currentWindowScene {
+            // Do not wait the callback that is called when the modal is dismissed
+            _ = Task.init {
+               do {
+                  try await AppStore.showManageSubscriptions(in: currentWindowScene)
                }
-               // If it fails return an error
+               catch {
+                  
+               }
+            }
+            // Call completion
+            completion(nil)
+         }
+         // Fallback to 'StoreKit v1' subscriptions page of the App Store
+         else {
+            if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
+               // canOpenURL & open must be executed on the main thread
+               DispatchQueue.main.async {
+                  if UIApplication.shared.canOpenURL(url) {
+                     UIApplication.shared.open(url, options: [:])
+                     return completion(nil)
+                  }
+                  // If it fails return an error
+                  completion(IHError(IHErrors.manage_subscriptions_unavailable))
+               }
+            }
+            else {
                completion(IHError(IHErrors.manage_subscriptions_unavailable))
             }
          }
-         else {
-            completion(IHError(IHErrors.manage_subscriptions_unavailable))
-         }
-      }
+      })
    }
    
    /***************************** PRIVATE ******************************/
