@@ -23,7 +23,8 @@ import StoreKit
    public var isFinished: Bool
    // Receipt process date
    public var processDate: Date?
-
+   // Pricings
+   public var pricings: [IHProductPricing] = []
 
    init(token: String, sku: String, context: String, paymentProcessor: String) {
       self.token = token
@@ -38,7 +39,8 @@ import StoreKit
          "token": self.token,
          "sku": self.sku,
          "context": self.context,
-         "paymentProcessor": self.paymentProcessor
+         "paymentProcessor": self.paymentProcessor,
+         "pricings": self.pricings.map({(item) in item.getDictionary()}) as Any
       ]
    }
 }

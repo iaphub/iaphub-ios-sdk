@@ -20,8 +20,6 @@ import Foundation
    @objc public var activeProducts: [IHActiveProduct] = []
    // Filtered products for sale
    var filteredProductsForSale: [IHProduct] = []
-   // Pricings
-   var pricings: [IHProductPricing] = []
    // Latest user fetch date
    var fetchDate: Date? = nil
 
@@ -199,7 +197,6 @@ import Foundation
       if (productsOnly == false) {
          dictionnary["id"] = self.id
          dictionnary["fetchDate"] = IHUtil.dateToIsoString(self.fetchDate)
-         dictionnary["pricings"] = self.pricings.map({(pricing) in pricing.getDictionary()})
          dictionnary["isServerLoginEnabled"] = self.isServerLoginEnabled
          dictionnary["cacheVersion"] = IHConfig.cacheVersion
       }
@@ -227,9 +224,6 @@ import Foundation
                })
                self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self, failure: { err, item in
                   IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, \(err.localizedDescription)", params: ["item": item as Any])
-               })
-               self.pricings = IHUtil.parseItems(data: json["pricings"], type: IHProductPricing.self, failure: { err, item in
-                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on pricing, \(err.localizedDescription)", params: ["item": item as Any])
                })
                self.isServerLoginEnabled = json["isServerLoginEnabled"] as? Bool ?? false
             }
@@ -383,64 +377,8 @@ import Foundation
          if (self.isInitialized == true && NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
             isUpdated = true
          }
-         // Update pricing
-         self.updatePricings() { (_) in
-            // No need to throw an error if the pricing update fails, the system can work without it
-            completion(nil, isUpdated)
-         }
-      })
-   }
-
-   /**
-    Update pricings
-   */
-   private func updatePricings(_ completion: @escaping (IHError?) -> Void) {
-      // Convert the products to an array of product pricings
-      let products = self.productsForSale + self.activeProducts
-      let pricings = products
-      .map({ (product) -> IHProductPricing? in
-         if let currency = product.currency, product.price != 0 {
-            return IHProductPricing(id: product.id, price: product.price, currency: currency, introPrice: product.subscriptionIntroPhases?.first?.price)
-         }
-         return nil;
-      })
-      .compactMap ({ $0 })
-      // Compare latest pricing with the previous one
-      let samePricings = pricings.filter { (newPricing) -> Bool in
-         // Look if we already have the pricing in memory
-         let itemFound = self.pricings.first { (oldPricing) -> Bool in
-            if (oldPricing.id == newPricing.id &&
-                oldPricing.price == newPricing.price &&
-                oldPricing.currency == newPricing.currency &&
-                oldPricing.introPrice == newPricing.introPrice) {
-                  return true;
-            }
-            return false;
-         }
-         
-         return itemFound != nil ? true : false;
-      }
-      // No need to send a request if the array of pricings is empty
-      if (pricings.count == 0) {
-         return completion(nil)
-      }
-      // No need to send a request if the pricing is the same
-      if (samePricings.count == pricings.count) {
-         return completion(nil)
-      }
-      // Post pricing
-      guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found))
-      }
-      api.postPricing(["products": pricings.map({ (pricing) in pricing.getDictionary()})], {(err) in
-         // Check error
-         guard err == nil else {
-            return completion(err)
-         }
-         // Update pricings
-         self.pricings = pricings
          // Call completion
-         completion(nil)
+         completion(nil, isUpdated)
       })
    }
    
@@ -546,11 +484,8 @@ import Foundation
          if (!recoveredProducts.isEmpty) {
             // Trigger onUserUpdate
             self.onUserUpdate?()
-            // Update pricings
-            self.updatePricings { _ in
-               // Call completion
-               completion(true)
-            }
+            // Call completion
+            completion(true)
          }
          // Otherwise just call the completion
          else {
@@ -763,7 +698,6 @@ import Foundation
    func reset() {
       self.productsForSale = []
       self.activeProducts = []
-      self.pricings = []
       self.fetchDate = nil
       self.receiptPostDate = nil
       self.updateDate = nil
@@ -838,28 +772,76 @@ import Foundation
    /**
     Post receipt
    */
+   func loadReceiptPricings(_ receipt: IHReceipt, _ completion: @escaping () -> Void) {
+      // Check the sdk is started
+      guard let storekit = self.sdk.storekit else {
+         return completion()
+      }
+      // Get receipt sku + skus of same group
+      let allProducts = self.productsForSale + self.activeProducts
+      var skus = Set<String>()
+      // Look if we can find the product
+      let receiptProduct = allProducts.first(where: {$0.sku == receipt.sku})
+      // If we can, also add the products from the same group
+      if let receiptProduct = receiptProduct {
+         let productsSameGroup = allProducts.filter({ item in item.group != nil && item.group == receiptProduct.group && item.sku != receiptProduct.sku}).prefix(20)
+         skus = Set([receiptProduct.sku] + productsSameGroup.compactMap({ item in item.sku}))
+      }
+      // Otherwise only use the sku from the receipt
+      else {
+         skus = Set([receipt.sku])
+      }
+      // Get product details of the skus
+      storekit.getProductsDetails(skus) { err, productsDetails in
+         // Add pricings of the skus on the receipt
+         receipt.pricings = (productsDetails ?? []).compactMap { (productDetails: IHProductDetails) -> IHProductPricing? in
+            let product = allProducts.first(where: {$0.sku == productDetails.sku})
+            
+            if let currency = productDetails.currency, productDetails.price != 0 {
+               return IHProductPricing(
+                  id: product?.id,
+                  sku: productDetails.sku,
+                  price: productDetails.price,
+                  currency: currency,
+                  introPrice: productDetails.subscriptionIntroPhases?.first?.price
+               )
+            }
+            return nil
+         }
+         // Call completion
+         completion()
+      }
+   }
+   
+   /**
+    Post receipt
+   */
    func postReceipt(_ receipt: IHReceipt, _ completion: @escaping (IHError?, IHReceiptResponse?) -> Void) {
       guard let api = self.api else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "post receipt failed"), nil)
       }
-      api.postReceipt(receipt.getDictionary(), { (err, data) in
-         // Check for error
-         guard err == nil, let data = data else {
-            return completion(err ?? IHError(IHErrors.unexpected, IHUnexpectedErrors.post_receipt_data_missing), nil)
+      // Get product details of the skus
+      self.loadReceiptPricings(receipt) {
+         // Post receipt
+         api.postReceipt(receipt.getDictionary()) { (err, data) in
+            // Check for error
+            guard err == nil, let data = data else {
+               return completion(err ?? IHError(IHErrors.unexpected, IHUnexpectedErrors.post_receipt_data_missing), nil)
+            }
+            // Update receipt post date
+            self.receiptPostDate = Date()
+            // Update updateDate
+            self.updateDate = Date()
+            // Create receipt response
+            let response = IHReceiptResponse(data)
+            // If it is an anonymous user, enable the server login if a new transaction is detected
+            if self.isAnonymous() && response.status == "success" && response.newTransactions?.isEmpty == false {
+               self.enableServerLogin()
+            }
+            // Parse and return receipt response
+            completion(nil, response)
          }
-         // Update receipt post date
-         self.receiptPostDate = Date()
-         // Update updateDate
-         self.updateDate = Date()
-         // Create receipt response
-         let response = IHReceiptResponse(data)
-         // If it is an anonymous user, enable the server login if a new transaction is detected
-         if (self.isAnonymous() && response.status == "success" && response.newTransactions?.isEmpty == false) {
-            self.enableServerLogin()
-         }
-         // Parse and return receipt response
-         completion(nil, response)
-      })
+      }
    }
 
    /**

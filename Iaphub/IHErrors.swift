@@ -88,7 +88,6 @@ enum IHUnexpectedErrors : String, IHErrorProtocol {
    case start_missing = "iaphub not started"
    case receipt_validation_response_invalid = "receipt validation failed, response invalid"
    case product_parsing_failed = "product parsing from data failed"
-   case pricing_parsing_failed = "pricing parsing from data failed"
    case receipt_transation_parsing_failed = "receipt transaction parsing from data failed, transaction ignored"
    case get_cache_data_json_parsing_failed = "get cache data json parsing failed"
    case get_cache_data_item_parsing_failed = "error parsing item of cache data"
