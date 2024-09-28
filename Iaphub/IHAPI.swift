@@ -100,6 +100,30 @@ class IHAPI {
    }
    
    /**
+    Create purchase intent
+   */
+   public func createPurchaseIntent(_ params: Dictionary<String, Any>, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+      self.network.send(
+         type: "POST",
+         route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/purchase/intent",
+         params: params,
+         completion
+      )
+   }
+   
+   /**
+    Confirm purchase intent
+   */
+   public func confirmPurchaseIntent(_ id: String, _ params: Dictionary<String, Any>, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+      self.network.send(
+         type: "POST",
+         route: "/app/\(self.user.sdk.appId)/purchase/intent/\(id)/confirm",
+         params: params,
+         completion
+      )
+   }
+   
+   /**
     Post log
    */
    public func postLog(_ params: Dictionary<String, Any>, _ completion: @escaping (IHError?) -> Void) {

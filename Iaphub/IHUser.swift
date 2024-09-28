@@ -18,6 +18,8 @@ import Foundation
    @objc public var productsForSale: [IHProduct] = []
    // Active products of the user
    @objc public var activeProducts: [IHActiveProduct] = []
+   // Paywall id
+   var paywallId: String? = nil
    // Filtered products for sale
    var filteredProductsForSale: [IHProduct] = []
    // Latest user fetch date
@@ -57,6 +59,8 @@ import Foundation
    var enableDeferredPurchaseListener: Bool = true
    // Last error returned when fetching the products details
    var productsDetailsError: IHError? = nil
+   // Purchase intent
+   var purchaseIntent: String? = nil
 
 
    init(id: String?, sdk: Iaphub, enableDeferredPurchaseListener: Bool = true, onUserUpdate: (() -> Void)?, onDeferredPurchase: ((IHReceiptTransaction) -> Void)?) {
@@ -143,6 +147,79 @@ import Foundation
    }
    
    /**
+    Get payment processor
+    */
+   func getPaymentProcessor() -> String? {
+      guard let storekit = self.sdk.storekit else {
+         return nil
+      }
+      if (storekit.version == 1) {
+         return "app_store_v1"
+      }
+      else if (storekit.version == 2) {
+         return "app_store_v2"
+      }
+      return nil
+   }
+   
+   /**
+    Create purchase intent
+    */
+   func createPurchaseIntent(sku: String, _ completion: @escaping (IHError?) -> Void) {
+      guard let api = self.api else {
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "create purchase intent failed"))
+      }
+      // Check if not already processing
+      if (self.purchaseIntent != nil) {
+         return completion(IHError(IHErrors.buy_processing))
+      }
+      // Create purchase intent
+      var params: [String: Any] = ["sku": sku, "paymentProcessor": self.getPaymentProcessor() as Any]
+      if let paywallId = self.paywallId {
+         params["paywallId"] = paywallId
+      }
+      api.createPurchaseIntent(params, { (err, result) in
+         // Check if there is an error
+         guard err == nil else {
+            return completion(err)
+         }
+         // Update current purchase intent id
+         self.purchaseIntent = result?["id"] as? String
+         // Call completion
+         completion(nil)
+      })
+   }
+   
+   /**
+    Confirm purchase intent
+    */
+   func confirmPurchaseIntent(_ err: IHError?, _ transaction: IHReceiptTransaction?, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
+      guard let api = self.api else {
+         return completion(err, transaction)
+      }
+      var params: [String: Any] = [:]
+
+      if let err = err {
+         params["errorCode"] = err.code
+         if (err.subcode != nil) {
+            params["errorSubCode"] = err.subcode
+         }
+      }
+      // This error shouldn't happen
+      else if (transaction == nil) {
+         params["errorCode"] = "transaction_missing"
+      }
+      
+      guard let purchaseIntent = self.purchaseIntent else {
+         return completion(err, transaction)
+      }
+      self.purchaseIntent = nil
+      api.confirmPurchaseIntent(purchaseIntent, params, { (_, _) in
+         completion(err, transaction)
+      })
+   }
+   
+   /**
     Buy product
     */
    func buy(sku: String, crossPlatformConflict: Bool = true, _ completion: @escaping (IHError?, IHReceiptTransaction?) -> Void) {
@@ -150,39 +227,56 @@ import Foundation
       guard let storekit = self.sdk.storekit else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.start_missing), nil)
       }
-      // Refresh user
-      self.refresh({ (err, isFetched, isUpdated) in
+      // Create purchase intent
+      self.createPurchaseIntent(sku: sku) { err in
          // Check if there is an error
          guard err == nil else {
-            return completion(err, nil)
+            return self.confirmPurchaseIntent(err, nil, completion)
          }
-         // Get product
-         storekit.getProductDetails(sku) { err, product in
+         // Refresh user
+         self.refresh({ (err, isFetched, isUpdated) in
             // Check if there is an error
-            guard let product = product else {
-               return completion(err, nil)
+            guard err == nil else {
+               return self.confirmPurchaseIntent(err, nil, completion)
             }
-            // Try to get the product from the products for sale
-            let productForSale = self.productsForSale.first(where: {$0.sku == sku})
-            // Detect if the product has a subscription period (it means it is a subscription)
-            let hasSubscriptionPeriod = product.subscriptionDuration != nil
-            // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
-            if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
-               // Check cross platform conflicts
-               let conflictedSubscription = self.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
-               if (crossPlatformConflict && conflictedSubscription != nil) {
-                  return completion(IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"), nil)
+            // Get product
+            storekit.getProductDetails(sku) { err, product in
+               // Check if there is an error
+               guard let product = product else {
+                  return self.confirmPurchaseIntent(err, nil, completion)
                }
-               // Check if the product is already going to be replaced on next renewal date
-               let replacedProduct = self.activeProducts.first(where: {$0.subscriptionRenewalProductSku == sku && $0.subscriptionState == "active"})
-               if (replacedProduct != nil) {
-                  return completion(IHError(IHErrors.product_change_next_renewal, params: ["sku": sku]), nil)
+               // Try to get the product from the products for sale
+               let productForSale = self.productsForSale.first(where: {$0.sku == sku})
+               // Detect if the product has a subscription period (it means it is a subscription)
+               let hasSubscriptionPeriod = product.subscriptionDuration != nil
+               // Check if the product is a subscription by looking the type or the subscriptionPeriod property as a fallback
+               if (productForSale?.type.contains("subscription") == true || hasSubscriptionPeriod == true) {
+                  // Check cross platform conflicts
+                  let conflictedSubscription = self.activeProducts.first(where: {$0.type.contains("subscription") && $0.platform != "ios"})
+                  if (crossPlatformConflict && conflictedSubscription != nil) {
+                     return self.confirmPurchaseIntent(
+                        IHError(IHErrors.cross_platform_conflict, message: "platform: \(conflictedSubscription?.platform ?? "")"),
+                        nil,
+                        completion
+                     )
+                  }
+                  // Check if the product is already going to be replaced on next renewal date
+                  let replacedProduct = self.activeProducts.first(where: {$0.subscriptionRenewalProductSku == sku && $0.subscriptionState == "active"})
+                  if (replacedProduct != nil) {
+                     return self.confirmPurchaseIntent(
+                        IHError(IHErrors.product_change_next_renewal, params: ["sku": sku]),
+                        nil,
+                        completion
+                     )
+                  }
+               }
+               // Launch purchase
+               storekit.buy(sku) { err, transaction in
+                  self.confirmPurchaseIntent(err, transaction, completion)
                }
             }
-            // Launch purchase
-            storekit.buy(sku, completion)
-         }
-      })
+         })
+      }
    }
 
    /**
@@ -196,6 +290,7 @@ import Foundation
       
       if (productsOnly == false) {
          dictionnary["id"] = self.id
+         dictionnary["paywallId"] = self.paywallId
          dictionnary["fetchDate"] = IHUtil.dateToIsoString(self.fetchDate)
          dictionnary["isServerLoginEnabled"] = self.isServerLoginEnabled
          dictionnary["cacheVersion"] = IHConfig.cacheVersion
@@ -226,6 +321,7 @@ import Foundation
                   IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, \(err.localizedDescription)", params: ["item": item as Any])
                })
                self.isServerLoginEnabled = json["isServerLoginEnabled"] as? Bool ?? false
+               self.paywallId = json["paywallId"] as? String
             }
          }
          catch {
@@ -418,6 +514,8 @@ import Foundation
          self.activeProducts = activeProducts
          // Update iaphub id
          self.iaphubId = data["id"] as? String
+         // Update paywall id
+         self.paywallId = data["paywallId"] as? String
          // Mark needsFetch as false
          self.needsFetch = false
          // Process events
@@ -819,6 +917,10 @@ import Foundation
    func postReceipt(_ receipt: IHReceipt, _ completion: @escaping (IHError?, IHReceiptResponse?) -> Void) {
       guard let api = self.api else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "post receipt failed"), nil)
+      }
+      // Add purchase intent
+      if (receipt.context == "purchase") {
+         receipt.purchaseIntent = self.purchaseIntent
       }
       // Get product details of the skus
       self.loadReceiptPricings(receipt) {

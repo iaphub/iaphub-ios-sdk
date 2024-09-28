@@ -86,21 +86,11 @@ class IaphubTests: XCTestCase {
    }
    
    func test01_getProductsForSale() async throws {
-      var pricePosted = false
       var userFetched = false
       
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (type == "GET" && route.contains("/user")) {
             userFetched = true
-         }
-         else if (route.contains("/pricing")) {
-            let products = params["products"] as? [Dictionary<String, Any>]
-            
-            if let products = products {
-               if (products[0]["price"] as? Double == 1.99 && products[0]["currency"] as? String == "USD") {
-                  pricePosted = true
-               }
-            }
          }
          return nil
       }
@@ -120,7 +110,6 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(products[0].localizedPrice, "$1.99")
       XCTAssertEqual(products[0].price, 1.99)
       XCTAssertEqual(products[0].currency, "USD")
-      XCTAssertEqual(pricePosted, true)
       XCTAssertEqual(userFetched, false)
    }
    
@@ -149,8 +138,11 @@ class IaphubTests: XCTestCase {
    }
 
    func test05_buy() async throws {
+      var receiptParams: Dictionary<String, Any> = [:]
+      
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (route.contains("/receipt")) {
+            receiptParams = params
             return [
                "status": "success",
                "oldTransactions": [],
@@ -166,13 +158,24 @@ class IaphubTests: XCTestCase {
                ]
             ]
          }
+         else if (route.contains("/intent")) {
+            return [
+               "id": "3a517bdd0613c16f11e7faz4"
+            ]
+         }
          return nil
       }
 
       let transaction = try await Iaphub.buy(sku: "consumable")
+      
       XCTAssertEqual(self.delegate.errorCount, 0)
       XCTAssertEqual(self.delegate.userUpdateCount, 0)
       XCTAssertEqual(self.delegate.processReceiptCount, 1)
+      
+      XCTAssertEqual(receiptParams["context"] as? String, "purchase")
+      XCTAssertEqual(receiptParams["purchaseIntent"] as? String, "3a517bdd0613c16f11e7faz4")
+      XCTAssertEqual((receiptParams["pricings"] as? [[String: Any]])?.first?["sku"] as? String, "consumable")
+      
       XCTAssertEqual(transaction.sku, "consumable")
       XCTAssertEqual(transaction.type, "consumable")
       XCTAssertEqual(transaction.localizedTitle, "Consumable")

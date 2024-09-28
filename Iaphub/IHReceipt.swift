@@ -25,6 +25,8 @@ import StoreKit
    public var processDate: Date?
    // Pricings
    public var pricings: [IHProductPricing] = []
+   // Purchase intent
+   public var purchaseIntent: String?
 
    init(token: String, sku: String, context: String, paymentProcessor: String) {
       self.token = token
@@ -35,12 +37,18 @@ import StoreKit
    }
 
    public func getDictionary() -> [String: Any] {
-      return [
+      var dic = [
          "token": self.token,
          "sku": self.sku,
          "context": self.context,
          "paymentProcessor": self.paymentProcessor,
          "pricings": self.pricings.map({(item) in item.getDictionary()}) as Any
       ]
+      
+      if (self.purchaseIntent != nil) {
+         dic["purchaseIntent"] = self.purchaseIntent
+      }
+      
+      return dic
    }
 }
