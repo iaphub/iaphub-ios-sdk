@@ -40,6 +40,10 @@ class IHAPI {
       if (self.user.enableDeferredPurchaseListener == false) {
          params["deferredPurchase"] = "false"
       }
+      // Add lang parameter
+      if (self.user.sdk.lang != "") {
+         params["lang"] = self.user.sdk.lang
+      }
       // Add device params
       for (key, value) in self.user.sdk.deviceParams {
          params["params.\(key)"] = value
@@ -86,14 +90,20 @@ class IHAPI {
    */
    public func postReceipt(_ receipt: Dictionary<String, Any>, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
       var timeout: Double = 35
+      var params = receipt
       
+      // Add lang parameter
+      if (self.user.sdk.lang != "") {
+         params["lang"] = self.user.sdk.lang
+      }
+      // Update timeout to 65 seconds for purchase context
       if (receipt["context"] as? String == "purchase") {
          timeout = 65
       }
       self.network.send(
          type: "POST",
          route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)/receipt",
-         params: receipt,
+         params: params,
          timeout: timeout,
          completion
       )

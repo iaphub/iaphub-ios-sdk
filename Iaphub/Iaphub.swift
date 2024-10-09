@@ -29,6 +29,7 @@ import UIKit
    var appId: String = ""
    var apiKey: String = ""
    var environment: String = "production"
+   var lang: String = ""
    var allowAnonymousPurchase: Bool = false
 
    var sdk: String = IHConfig.sdk
@@ -55,6 +56,7 @@ import UIKit
     - parameter enableDeferredPurchaseListener: If enabled the didReceiveDeferredPurchase event will be triggered (true by default)
     - parameter enableStorekitV2: If enabled StoreKit V2 will be enabled on iOS 15+ (false by default)
     - parameter environment: App environment ("production" by default)
+    - parameter lang: Language
     - parameter sdk:Parent sdk using the IAPHUB IOS SDK ('react_native', 'flutter', 'cordova')
     - parameter sdkVersion:Parent sdk version
     */
@@ -66,6 +68,7 @@ import UIKit
       enableDeferredPurchaseListener: Bool = true,
       enableStorekitV2: Bool = false,
       environment: String = "production",
+      lang: String = "",
       sdk: String = "",
       sdkVersion: String = "")
    {
@@ -75,6 +78,9 @@ import UIKit
       shared.apiKey = apiKey
       shared.allowAnonymousPurchase = allowAnonymousPurchase
       shared.environment = environment
+      if (lang != "" && shared.isValidLang(lang)) {
+         shared.lang = lang
+      }
       if (sdk != "") {
          shared.sdk = IHConfig.sdk + "/" + sdk;
       }
@@ -144,6 +150,23 @@ import UIKit
          // Mark as unstarted
          shared.isStarted = false
       }
+   }
+   
+   /**
+    Set language
+    */
+   func setLang(_ lang: String) -> Bool {
+      guard self.isValidLang(lang) else {
+           return false
+       }
+       
+      if (lang != self.lang) {
+         self.lang = lang
+         if let user = self.user {
+            user.resetCache()
+         }
+      }
+       return true
    }
 
    /**
@@ -393,6 +416,15 @@ import UIKit
    }
    
    /***************************** PRIVATE ******************************/
+   
+   /**
+   Check if the lang code is valid
+   */
+   private func isValidLang(_ lang: String) -> Bool {
+       // Regular expression to match "xx" or "xx-XX" formats
+       let regex = "^[a-z]{2}(-[A-Z]{2})?$"
+       return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: lang)
+   }
    
    /**
    Triggerred when the app is going to the background

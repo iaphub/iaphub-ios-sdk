@@ -64,8 +64,14 @@ public class IHProductDetails: NSObject, IHParsable {
    }
    
    public func setDetails(_ details: IHProductDetails) {
-      self.localizedTitle = details.localizedTitle
-      self.localizedDescription = details.localizedDescription
+      // Update localized title if not already defined by the parent object
+      if (self.localizedTitle == nil) {
+         self.localizedTitle = details.localizedTitle
+      }
+      // Update localized description if not already defined by the parent object
+      if (self.localizedDescription == nil) {
+         self.localizedDescription = details.localizedDescription
+      }
       self.price = details.price
       self.currency = details.currency
       self.localizedPrice = details.localizedPrice
