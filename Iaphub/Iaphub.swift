@@ -155,14 +155,14 @@ import UIKit
    /**
     Set language
     */
-   func setLang(_ lang: String) -> Bool {
-      guard self.isValidLang(lang) else {
+   @objc public class func setLang(_ lang: String) -> Bool {
+      guard shared.isValidLang(lang) else {
            return false
        }
        
-      if (lang != self.lang) {
-         self.lang = lang
-         if let user = self.user {
+      if (lang != shared.lang) {
+         shared.lang = lang
+         if let user = shared.user {
             user.resetCache()
          }
       }
