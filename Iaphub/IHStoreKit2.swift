@@ -126,7 +126,7 @@ class IHStoreKit2: NSObject, IHStoreKit, SKPaymentTransactionObserver {
                            // Add only if eligible for intro offer
                            if (isEligibleForIntroOffer) {
                               data["subscriptionIntroPhases"] = [[
-                                 "type": (introOffer.paymentMode == Product.SubscriptionOffer.PaymentMode.freeTrial) ? "free_trial" : "intro",
+                                 "type": (introOffer.paymentMode == Product.SubscriptionOffer.PaymentMode.freeTrial) ? "trial" : "intro",
                                  "price": round(Double(truncating: introOffer.price as NSNumber) * 100) / 100,
                                  "currency": product.priceFormatStyle.currencyCode,
                                  "localizedPrice": introOffer.displayPrice,
