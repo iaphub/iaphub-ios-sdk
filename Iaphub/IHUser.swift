@@ -24,6 +24,8 @@ import Foundation
    var filteredProductsForSale: [IHProduct] = []
    // Latest user fetch date
    var fetchDate: Date? = nil
+   // ETag
+   var etag: String? = nil
 
    // SDK
    var sdk: Iaphub
@@ -178,13 +180,13 @@ import Foundation
       if let paywallId = self.paywallId {
          params["paywallId"] = paywallId
       }
-      api.createPurchaseIntent(params, { (err, result) in
+      api.createPurchaseIntent(params, { (err, response) in
          // Check if there is an error
          guard err == nil else {
             return completion(err)
          }
          // Update current purchase intent id
-         self.purchaseIntent = result?["id"] as? String
+         self.purchaseIntent = response?.data?["id"] as? String
          // Call completion
          completion(nil)
       })
@@ -292,6 +294,7 @@ import Foundation
          dictionnary["id"] = self.id
          dictionnary["paywallId"] = self.paywallId
          dictionnary["fetchDate"] = IHUtil.dateToIsoString(self.fetchDate)
+         dictionnary["etag"] = self.etag
          dictionnary["isServerLoginEnabled"] = self.isServerLoginEnabled
          dictionnary["cacheVersion"] = IHConfig.cacheVersion
       }
@@ -322,6 +325,7 @@ import Foundation
                })
                self.isServerLoginEnabled = json["isServerLoginEnabled"] as? Bool ?? false
                self.paywallId = json["paywallId"] as? String
+               self.etag = json["etag"] as? String
             }
          }
          catch {
@@ -432,9 +436,9 @@ import Foundation
          self.getCacheData()
       }
       // Get data from API
-      api.getUser({ (err, data) in
+      api.getUser({ (err, response) in
          // Update user using API data
-         self.updateFromApiData(err: err, data: data) { updateErr, isUpdated in
+         self.updateFromApiData(err: err, response: response) { updateErr, isUpdated in
             completeFetchRequest(err: updateErr, isUpdated: isUpdated)
          }
       })
@@ -443,10 +447,15 @@ import Foundation
    /**
     Update user using API data
    */
-   private func updateFromApiData(err: IHError?, data: [String: Any]?, _ completion: @escaping (IHError?, Bool) -> Void) {
-      var data = data
+   private func updateFromApiData(err: IHError?, response: IHNetworkResponse?, _ completion: @escaping (IHError?, Bool) -> Void) {
+      var data = response?.data
       var isUpdated = false
 
+      // Handle 304 not modified
+      if (response?.hasNotModified() == true) {
+         return completion(nil, isUpdated)
+      }
+      // Handle errors
       if (err != nil) {
          // Clear products if the platform is disabled
          if let err = err, err.code == "server_error" && err.subcode == "platform_disabled" {
@@ -472,6 +481,10 @@ import Foundation
          let newProductsDictionnary = self.getDictionnary(productsOnly: true)
          if (self.isInitialized == true && NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
             isUpdated = true
+         }
+         // Update ETag
+         if let etag = response?.getHeader("ETag") {
+            self.etag = etag
          }
          // Call completion
          completion(nil, isUpdated)
@@ -802,6 +815,7 @@ import Foundation
       self.needsFetch = false
       self.isInitialized = false
       self.isServerLoginEnabled = false
+      self.etag = nil
    }
 
    /**
@@ -925,9 +939,9 @@ import Foundation
       // Get product details of the skus
       self.loadReceiptPricings(receipt) {
          // Post receipt
-         api.postReceipt(receipt.getDictionary()) { (err, data) in
+         api.postReceipt(receipt.getDictionary()) { (err, response) in
             // Check for error
-            guard err == nil, let data = data else {
+            guard err == nil, let data = response?.data else {
                return completion(err ?? IHError(IHErrors.unexpected, IHUnexpectedErrors.post_receipt_data_missing), nil)
             }
             // Update receipt post date
@@ -935,13 +949,13 @@ import Foundation
             // Update updateDate
             self.updateDate = Date()
             // Create receipt response
-            let response = IHReceiptResponse(data)
+            let receiptResponse = IHReceiptResponse(data)
             // If it is an anonymous user, enable the server login if a new transaction is detected
-            if self.isAnonymous() && response.status == "success" && response.newTransactions?.isEmpty == false {
+            if self.isAnonymous() && receiptResponse.status == "success" && receiptResponse.newTransactions?.isEmpty == false {
                self.enableServerLogin()
             }
             // Parse and return receipt response
-            completion(nil, response)
+            completion(nil, receiptResponse)
          }
       }
    }

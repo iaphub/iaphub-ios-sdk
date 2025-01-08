@@ -8,6 +8,31 @@
 
 import Foundation
 
+struct IHNetworkResponse {
+    var data: [String: Any]?
+    var httpResponse: HTTPURLResponse?
+    
+    func getHeader(_ name: String) -> String? {
+        guard let response = httpResponse else {
+            return nil
+        }
+        
+        if #available(iOS 13.0, *) {
+            return response.value(forHTTPHeaderField: name)
+        } else {
+            return response.allHeaderFields[name] as? String
+        }
+    }
+   
+   func hasInternalError() -> Bool {
+      return (self.httpResponse?.statusCode ?? 0) >= 500
+   }
+   
+   func hasNotModified() -> Bool {
+      return (self.httpResponse?.statusCode ?? 0) == 304
+   }
+}
+
 class IHNetwork {
     
    var endpoint : String
@@ -45,13 +70,13 @@ class IHNetwork {
    /**
     Send a request
    */
-   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double = 8.0, retry: Int = 2, silentLog: Bool = false, _ completion: @escaping (IHError?, [String: Any]?) -> Void) {
+   public func send(type: String, route: String, params: Dictionary<String, Any> = [:], headers: Dictionary<String, String> = [:], timeout: Double = 8.0, retry: Int = 2, silentLog: Bool = false, _ completion: @escaping (IHError?, IHNetworkResponse?) -> Void) {
       // Use mock if defined
       if (self.mock != nil) {
          let mockData = self.mock?(type, route, params)
          
          if (mockData != nil) {
-            return completion(nil, mockData)
+            return completion(nil, IHNetworkResponse(data: mockData, httpResponse: nil))
          }
       }
       // Retry request up to 3 times with a delay of 1 second
@@ -59,29 +84,31 @@ class IHNetwork {
          times: retry,
          delay: 1,
          task: { (callback) in
-            self.sendRequest(type: type, route: route, params: params, timeout: timeout) { (err, data, httpResponse) in
+            self.sendRequest(type: type, route: route, params: params, headers: headers, timeout: timeout) { (err, networkResponse) in
                // Retry request if the request failed with a network error
                if (err?.code == "network_error") {
-                  callback(true, err, data)
+                  callback(true, err, networkResponse)
                }
                // Retry request if the request failed with status code >= 500
-               else if ((httpResponse?.statusCode ?? 0) >= 500) {
-                  callback(true, err, data)
+               else if (networkResponse?.hasInternalError() == true) {
+                  callback(true, err, networkResponse)
                }
                // Otherwise do not retry
                else {
-                  callback(false, err, data)
+                  callback(false, err, networkResponse)
                }
             }
          },
-         completion: { (err, data) in
+         completion: { (err, networkResponse) in
+            let networkResponse = networkResponse as? IHNetworkResponse
+            
             // Send error if there is one
             if (err != nil && silentLog != true) {
                err?.send()
             }
             // Call completion
             DispatchQueue.main.async {
-               completion(err, data as? [String: Any])
+               completion(err, networkResponse)
             }
          }
       )
@@ -92,7 +119,7 @@ class IHNetwork {
    /**
     Create GET request
    */
-   private func createGetRequest(url: URL, params: Dictionary<String, Any>) throws -> URLRequest {
+   private func createGetRequest(url: URL, params: Dictionary<String, Any>, headers: Dictionary<String, String>) throws -> URLRequest {
       // Create url params
       guard var urlParams = params as? [String: String] else {
          throw IHError(IHErrors.network_error, IHNetworkErrors.url_params_invalid)
@@ -114,16 +141,23 @@ class IHNetwork {
       var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
 
       request.httpMethod = "GET"
+      
+      // Add default headers
+      for key in self.headers.keys {
+         request.addValue(self.headers[key]!, forHTTPHeaderField: key)
+      }
+      // Add custom headers
       for key in headers.keys {
          request.addValue(headers[key]!, forHTTPHeaderField: key)
       }
+      
       return request
    }
    
    /**
     Create POST request
    */
-   private func createPostRequest(url: URL, params: Dictionary<String, Any>) throws -> URLRequest {
+   private func createPostRequest(url: URL, params: Dictionary<String, Any>, headers: Dictionary<String, String>) throws -> URLRequest {
       var requestParams = params
       // Add global params
       for key in self.params.keys {
@@ -135,8 +169,14 @@ class IHNetwork {
       
       request.httpMethod = "POST"
       request.httpBody = json
+      
+      // Add default headers
       for key in self.headers.keys {
          request.addValue(self.headers[key]!, forHTTPHeaderField: key)
+      }
+      // Add custom headers
+      for key in headers.keys {
+         request.addValue(headers[key]!, forHTTPHeaderField: key)
       }
 
       return request
@@ -145,17 +185,19 @@ class IHNetwork {
    /**
     Send a request
    */
-   private func sendRequest(type: String, route: String, params: Dictionary<String, Any> = [:], timeout: Double, _ completion: @escaping (IHError?, [String: Any]?, HTTPURLResponse?) -> Void) {
+   private func sendRequest(type: String, route: String, params: Dictionary<String, Any> = [:], headers: Dictionary<String, String> = [:], timeout: Double, _ completion: @escaping (IHError?, IHNetworkResponse?) -> Void) {
       let startTime = (Date().timeIntervalSince1970 * 1000).rounded()
       var infos = ["type": type, "route": route]
       
       do {
          // Create url
          guard let url = URL(string: self.endpoint + route) else {
-            return completion(IHError(IHErrors.network_error, IHNetworkErrors.url_invalid, params: infos, silent: true), nil, nil)
+            return completion(IHError(IHErrors.network_error, IHNetworkErrors.url_invalid, params: infos, silent: true), nil)
          }
          // Create request
-         let request = try (type == "GET") ? self.createGetRequest(url: url, params: params) : self.createPostRequest(url: url, params: params)
+         let request = try (type == "GET") ? 
+            self.createGetRequest(url: url, params: params, headers: headers) : 
+            self.createPostRequest(url: url, params: params, headers: headers)
          // Set up the session
          let sessionConfig = URLSessionConfiguration.default
          sessionConfig.timeoutIntervalForResource = timeout
@@ -167,39 +209,48 @@ class IHNetwork {
             infos["duration"] = "\(endTime - startTime)"
             // Check for any errors
             guard error == nil else {
-               return completion(IHError(IHErrors.network_error, IHNetworkErrors.request_failed, message: error?.localizedDescription, params: infos, silent: true), nil, nil)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.request_failed, message: error?.localizedDescription, params: infos, silent: true), nil)
             }
             // Get http response
             guard let httpResponse = response as? HTTPURLResponse else {
-               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), nil, nil)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), nil)
+            }
+            // Create network response
+            var networkResponse = IHNetworkResponse(data: nil, httpResponse: httpResponse)
+            // Return response on not modified status code
+            if (networkResponse.hasNotModified()) {
+               return completion(nil, networkResponse)
             }
             // Add status code to infos
             infos["statusCode"] = "\(httpResponse.statusCode)"
             // Check we have a response
             guard let data = data else {
-               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_empty, params: infos, silent: true), nil, httpResponse)
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_empty, params: infos, silent: true), networkResponse)
             }
             // Process the response
             do {
                // Parse JSON
                guard let responseData = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-                  return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_parsing_failed, params: infos, silent: true), nil, httpResponse)
+                  return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_parsing_failed, params: infos, silent: true), networkResponse)
                }
+               // Add data to response
+               networkResponse.data = responseData
                // Check if the response returned an error
                if let error = responseData["error"] as? String {
-                  return completion(IHError(IHErrors.server_error, IHCustomError(error, "code: \(error)"), params: infos, silent: true), nil, httpResponse)
+                  return completion(IHError(IHErrors.server_error, IHCustomError(error, "code: \(error)"), params: infos, silent: true), networkResponse)
                }
-               // Otherwise the request is successful, return the data
-               return completion(nil, responseData, httpResponse)
-            } catch  {
-               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), nil, httpResponse)
+               // Return the network response
+               return completion(nil, networkResponse)
+            }
+            catch {
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), networkResponse)
             }
          }
          // Launch task
          task.resume();
       } catch {
-         return completion((error as? IHError) ?? IHError(IHErrors.network_error, IHNetworkErrors.unknown_exception, params: infos, silent: true), nil, nil)
+         return completion((error as? IHError) ?? IHError(IHErrors.network_error, IHNetworkErrors.unknown_exception, params: infos, silent: true), nil)
       }
-    }
+   }
     
 }
