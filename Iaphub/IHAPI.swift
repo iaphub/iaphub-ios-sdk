@@ -30,16 +30,22 @@ class IHAPI {
    /**
     Get user
    */
-   public func getUser(_ completion: @escaping (IHError?, IHNetworkResponse?) -> Void) {
+   public func getUser(context: IHUserFetchContext, _ completion: @escaping (IHError?, IHNetworkResponse?) -> Void) {
       var params: [String: Any] = [:]
       var headers: [String: String] = [:]
+      // Add context
+      params["context"] = context.getValue()
       // Add If-None-Match header
       if let etag = self.user.etag {
          headers["If-None-Match"] = etag
       }
-      // Add updateDate parameter
+      // Add updateDate parameter (the last time the user was updated on the client)
       if let updateDate = self.user.updateDate {
          params["updateDate"] = "\(Int64((updateDate.timeIntervalSince1970 * 1000).rounded()))"
+      }
+      // Add fetchDate parameter (the last time the user was fetched)
+      if let fetchDate = self.user.fetchDate {
+         params["fetchDate"] = "\(Int64((fetchDate.timeIntervalSince1970 * 1000).rounded()))"
       }
       // Add deferredPurchase parameter
       if (self.user.enableDeferredPurchaseListener == false) {
@@ -53,7 +59,6 @@ class IHAPI {
       for (key, value) in self.user.sdk.deviceParams {
          params["params.\(key)"] = value
       }
-      
       self.network.send(
          type: "GET",
          route: "/app/\(self.user.sdk.appId)/user/\(self.user.id)",

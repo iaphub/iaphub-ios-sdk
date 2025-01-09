@@ -236,7 +236,7 @@ import Foundation
             return self.confirmPurchaseIntent(err, nil, completion)
          }
          // Refresh user
-         self.refresh({ (err, isFetched, isUpdated) in
+         self.refresh(context: IHUserFetchContext(source: .buy), { (err, isFetched, isUpdated) in
             // Check if there is an error
             guard err == nil else {
                return self.confirmPurchaseIntent(err, nil, completion)
@@ -385,7 +385,9 @@ import Foundation
    /**
     Fetch user
    */
-   public func fetch(_ completion: @escaping (IHError?, Bool) -> Void) {
+   public func fetch(context: IHUserFetchContext, _ completion: @escaping (IHError?, Bool) -> Void) {
+      var context = context
+
       // Get api
       guard let api = self.api else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), false)
@@ -435,8 +437,25 @@ import Foundation
       if (self.fetchDate == nil) {
          self.getCacheData()
       }
+      // Add property to context if active product detected
+      if (!self.activeProducts.isEmpty) {
+         // Check for active and expired subscriptions
+         let subscriptions = self.activeProducts.filter({ $0.type.contains("subscription") && $0.expirationDate != nil })
+         // Add active subscription property if any subscription is active
+         if subscriptions.contains(where: { $0.expirationDate! > Date() }) {
+            context.properties.append(.with_active_subscription)
+         }
+         // Add expired subscription property if any subscription is expired
+         if subscriptions.contains(where: { $0.expirationDate! <= Date() }) {
+            context.properties.append(.with_expired_subscription)
+         }
+         // Add active non consumable property if any non consumable is active
+         if self.activeProducts.contains(where: { $0.type == "non_consumable" }) {
+            context.properties.append(.with_active_non_consumable)
+         }
+      }
       // Get data from API
-      api.getUser({ (err, response) in
+      api.getUser(context: context, { (err, response) in
          // Update user using API data
          self.updateFromApiData(err: err, response: response) { updateErr, isUpdated in
             completeFetchRequest(err: updateErr, isUpdated: isUpdated)
@@ -624,7 +643,7 @@ import Foundation
    /**
     Refresh user
    */
-   func refresh(interval: Double, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
+   func refresh(context: IHUserFetchContext, interval: Double, force: Bool = false, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
       var shouldFetch = false
       
       if (
@@ -654,7 +673,7 @@ import Foundation
          return
       }
       // Otherwise fetch user
-      self.fetch({ (err, isUpdated) in
+      self.fetch(context: context, { (err, isUpdated) in
          // Check if there is an error
          if (err != nil) {
             // Return an error if the user has never been fetched
@@ -684,9 +703,9 @@ import Foundation
    /**
     Refresh user with a shorter interval if the user has an active subscription (otherwise every 24 hours by default)
    */
-   func refresh(_ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
+   func refresh(context: IHUserFetchContext, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
       // Refresh user
-      self.refresh(interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
+      self.refresh(context: context, interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
          // Check if there is an error
          guard err == nil else {
             completion?(err, isFetched, isUpdated)
@@ -699,7 +718,7 @@ import Foundation
             }
             // If we have active renewable subscriptions, refresh every minute
             if (subscriptions.count > 0) {
-               self.refresh(interval: 60, completion)
+               self.refresh(context: context, interval: 60, completion)
             }
             // Otherwise call the completion
             else {
@@ -718,7 +737,7 @@ import Foundation
    */
    func getActiveProducts(includeSubscriptionStates: [String] = [], _ completion: @escaping (IHError?, [IHActiveProduct]?) -> Void) {
       // Refresh user
-      self.refresh({ (err, _, _) in
+      self.refresh(context: IHUserFetchContext(source: .products), { (err, _, _) in
          // Check if there is an error
          guard err == nil else {
             return completion(err, nil)
@@ -743,7 +762,7 @@ import Foundation
     */
    func getProductsForSale(_ completion: @escaping (IHError?, [IHProduct]?) -> Void) {
       // Refresh user with an interval of 24 hours
-      self.refresh(interval: 60 * 60 * 24, { (err, _, _) in
+      self.refresh(context: IHUserFetchContext(source: .products), interval: 60 * 60 * 24, { (err, _, _) in
          // Check if there is an error
          guard err == nil else {
             return completion(err, nil)
@@ -986,7 +1005,7 @@ import Foundation
          // Update updateDate
          self.updateDate = Date()
          // Refresh user
-         self.refresh(interval: 0, force: true, { _, _, _ in
+         self.refresh(context: IHUserFetchContext(source: .restore), interval: 0, force: true, { _, _, _ in
             let newPurchases = self.restoredDeferredPurchases
             let transferredActiveProducts = self.activeProducts.filter { newActiveProduct in
                let isInOldActiveProducts = (oldActiveProducts.first { oldActiveProduct in oldActiveProduct.sku == newActiveProduct.sku}) != nil

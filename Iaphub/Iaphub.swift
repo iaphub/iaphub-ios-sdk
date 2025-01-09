@@ -446,7 +446,7 @@ import UIKit
       }
       // Refresh user (only if it has already been fetched)
       if let user = self.user, user.fetchDate != nil {
-         user.refresh()
+         user.refresh(context: IHUserFetchContext(source: .products, properties: [.on_foreground]))
       }
    }
    
@@ -485,7 +485,7 @@ import UIKit
                // Check receipt response
                if error == nil, let receiptResponse = receiptResponse {
                   // Refresh user in case the user id has been updated or any events has been posted
-                  user.refresh({ (_, _, _) in
+                  user.refresh(context: IHUserFetchContext(source: .receipt), { (_, _, _) in
                      // Finish receipt if it is a success
                      if (receiptResponse.status == "success") {
                         shouldFinishReceipt = true
