@@ -15,7 +15,7 @@ protocol IHErrorProtocol {
    
 }
 
-public enum IHErrors : String, IHErrorProtocol {
+enum IHErrors : String, IHErrorProtocol {
 
    case unexpected = "An unexpected error has happened"
    case network_error = "The remote server request failed"

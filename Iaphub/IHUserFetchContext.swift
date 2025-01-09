@@ -20,7 +20,7 @@ enum IHUserFetchContextProperty: String {
    case on_foreground = "ofg" // Occured when the app went to foreground
 }
 
-public struct IHUserFetchContext {
+struct IHUserFetchContext {
    var source: IHUserFetchContextSource
    var properties: [IHUserFetchContextProperty]
    

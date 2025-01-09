@@ -8,14 +8,14 @@
 
 import Foundation
 
-@objc public class IHEvent: NSObject, IHParsable {
+class IHEvent: IHParsable {
 
    // Event type
-   @objc public var type: String
+   var type: String
    // Event tags
-   @objc public var tags: [String]
+   var tags: [String]
    // Event tags
-   @objc public var transaction: IHReceiptTransaction
+   var transaction: IHReceiptTransaction
    
    required init(_ data: Dictionary<String, Any>) throws {
       // Checking mandatory properties
@@ -27,7 +27,7 @@ import Foundation
       self.transaction = try IHReceiptTransaction(transaction)
    }
    
-   public func getDictionary() -> [String: Any] {
+   func getDictionary() -> [String: Any] {
       return [
          "type": self.type,
          "tags": self.tags,

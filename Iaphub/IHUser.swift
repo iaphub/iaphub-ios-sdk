@@ -8,16 +8,16 @@
 
 import Foundation
 
-@objc public class IHUser: NSObject {
+class IHUser {
 
    // User id
-   @objc public var id: String
+   var id: String
    // Iaphub user id
-   @objc public var iaphubId: String? = nil
+   var iaphubId: String? = nil
    // Products for sale of the user
-   @objc public var productsForSale: [IHProduct] = []
+   var productsForSale: [IHProduct] = []
    // Active products of the user
-   @objc public var activeProducts: [IHActiveProduct] = []
+   var activeProducts: [IHActiveProduct] = []
    // Paywall id
    var paywallId: String? = nil
    // Filtered products for sale
@@ -84,7 +84,6 @@ import Foundation
       self.enableDeferredPurchaseListener = enableDeferredPurchaseListener
       self.onUserUpdate = onUserUpdate
       self.onDeferredPurchase = onDeferredPurchase
-      super.init()
       self.api = IHAPI(user: self)
       // Handle anonymous id save failure
       if (hasAnonymousIdSaveFailed) {
@@ -378,14 +377,14 @@ import Foundation
    /**
     Return if it is an anonymous user
    */
-   public func isAnonymous() -> Bool {
+   func isAnonymous() -> Bool {
       return self.id.hasPrefix(IHConfig.anonymousUserPrefix)
    }
 
    /**
     Fetch user
    */
-   public func fetch(context: IHUserFetchContext, _ completion: @escaping (IHError?, Bool) -> Void) {
+   func fetch(context: IHUserFetchContext, _ completion: @escaping (IHError?, Bool) -> Void) {
       var context = context
 
       // Get api

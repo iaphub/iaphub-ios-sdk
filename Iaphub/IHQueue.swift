@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class IHQueueItem {
+class IHQueueItem {
    
    var date: Date
    var data: Any
@@ -19,7 +19,7 @@ public class IHQueueItem {
    }
 }
 
-public typealias IHQueueIterator = (_ item: IHQueueItem, _ completion: @escaping () -> Void) -> Void
+typealias IHQueueIterator = (_ item: IHQueueItem, _ completion: @escaping () -> Void) -> Void
 
 class IHQueue {
    
