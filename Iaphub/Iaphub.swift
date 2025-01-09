@@ -333,6 +333,13 @@ import UIKit
    }
    
    /**
+    Get SDK version
+    */
+   @objc public class func getSDKVersion() -> String {
+      return IHConfig.sdkVersion
+   }
+   
+   /**
     Show manage subscriptions
     */
    @objc public class func showManageSubscriptions(_ completion: @escaping (IHError?) -> Void) {
