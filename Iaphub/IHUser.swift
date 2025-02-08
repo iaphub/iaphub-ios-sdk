@@ -453,6 +453,10 @@ class IHUser {
             context.properties.append(.with_active_non_consumable)
          }
       }
+      // Add property to context if initialization detected
+      if (self.isInitialized == false) {
+         context.properties.append(.initialization)
+      }
       // Get data from API
       api.getUser(context: context, { (err, response) in
          // Update user using API data
