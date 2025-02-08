@@ -295,6 +295,7 @@ class IHUser {
          dictionnary["fetchDate"] = IHUtil.dateToIsoString(self.fetchDate)
          dictionnary["etag"] = self.etag
          dictionnary["isServerLoginEnabled"] = self.isServerLoginEnabled
+         dictionnary["filteredProductsForSale"] = self.filteredProductsForSale.map({(product) in product.getDictionary()})
          dictionnary["cacheVersion"] = IHConfig.cacheVersion
       }
       return dictionnary
@@ -318,6 +319,9 @@ class IHUser {
                })
                self.productsForSale = IHUtil.parseItems(data: json["productsForSale"], type: IHProduct.self, failure: { err, item in
                   IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on product for sale, \(err.localizedDescription)", params: ["item": item as Any])
+               })
+               self.filteredProductsForSale = IHUtil.parseItems(data: json["filteredProductsForSale"] ?? [], type: IHProduct.self, failure: { err, item in
+                  IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on filtered product for sale, \(err.localizedDescription)", params: ["item": item as Any])
                })
                self.activeProducts = IHUtil.parseItems(data: json["activeProducts"], type: IHActiveProduct.self, failure: { err, item in
                   IHError(IHErrors.unexpected, IHUnexpectedErrors.get_cache_data_item_parsing_failed, message: "issue on active product, \(err.localizedDescription)", params: ["item": item as Any])
@@ -418,7 +422,8 @@ class IHUser {
             self.saveCacheData()
          }
          // If we have a fetchDate mark the user as initialized
-         if (self.fetchDate != nil && self.isInitialized == false) {
+         let isInitialized = self.isInitialized
+         if (self.fetchDate != nil && isInitialized == false) {
             self.isInitialized = true
          }
          // Call requests with the error
@@ -426,7 +431,7 @@ class IHUser {
          fetchRequests.forEach({ (request) in
             request(err, requestIsUpdated)
             // Only mark as updated for the first request
-            if (requestIsUpdated) {
+            if (requestIsUpdated && isInitialized == true) {
                requestIsUpdated = false
                self.onUserUpdate?()
             }
@@ -461,7 +466,16 @@ class IHUser {
       api.getUser(context: context, { (err, response) in
          // Update user using API data
          self.updateFromApiData(err: err, response: response) { updateErr, isUpdated in
-            completeFetchRequest(err: updateErr, isUpdated: isUpdated)
+            // If no update, check the filtered products for sale
+            if (isUpdated == false) {
+               self.updateFilteredProducts({ isUpdatedFromFilteredProducts in
+                  completeFetchRequest(err: updateErr, isUpdated: isUpdatedFromFilteredProducts)
+               })
+            }
+            // Otherwise call the completion
+            else {
+               completeFetchRequest(err: updateErr, isUpdated: isUpdated)
+            }
          }
       })
    }
@@ -501,7 +515,7 @@ class IHUser {
          }
          // Check if the user has been updated
          let newProductsDictionnary = self.getDictionnary(productsOnly: true)
-         if (self.isInitialized == true && NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
+         if (NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
             isUpdated = true
          }
          // Update ETag
@@ -571,6 +585,10 @@ class IHUser {
          // Filter empty sku (could happen with an active product from another platform)
          .filter({(sku) in sku != ""})
       )
+      // Call completion on empty array
+      if (productSkus.isEmpty) {
+         return completion()
+      }
       // Check the sdk is started
       guard let storekit = self.sdk.storekit else {
          return completion()
@@ -605,6 +623,10 @@ class IHUser {
     Update filtered products
    */
    func updateFilteredProducts(_ completion: @escaping (Bool) -> Void) {
+      // Call completion on empty array
+      if (self.filteredProductsForSale.isEmpty) {
+         return completion(false)
+      }
       // Update products details
       self.updateProductsDetails(self.filteredProductsForSale) {
          // Detect recovered products
@@ -615,8 +637,6 @@ class IHUser {
          self.filteredProductsForSale = self.filteredProductsForSale.filter({product in product.details == nil})
          // If we recovered products
          if (!recoveredProducts.isEmpty) {
-            // Trigger onUserUpdate
-            self.onUserUpdate?()
             // Call completion
             completion(true)
          }
@@ -663,9 +683,14 @@ class IHUser {
       ) {
          shouldFetch = true
       }
-      // Update products details if we had an error or filtered products
-      if (!shouldFetch && (self.productsDetailsError != nil || !self.filteredProductsForSale.isEmpty)) {
+      // Update products details if we have filtered products
+      if (!shouldFetch && !self.filteredProductsForSale.isEmpty) {
          self.updateFilteredProducts { isUpdated in
+            // Trigger onUserUpdate on update
+            if (isUpdated) {
+               self.onUserUpdate?()
+            }
+            // Call completion
             completion?(nil, false, isUpdated)
          }
          return
@@ -830,6 +855,7 @@ class IHUser {
    */
    func reset() {
       self.productsForSale = []
+      self.filteredProductsForSale = []
       self.activeProducts = []
       self.fetchDate = nil
       self.receiptPostDate = nil
