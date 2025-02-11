@@ -308,8 +308,15 @@ class IHUser {
    */
    func getCacheData() {
       let prefix = self.isAnonymous() ? "iaphub_user_a" : "iaphub_user"
+      let key = "\(prefix)_\(self.sdk.appId)"
+      // Attempt to retrieve the cache from the keychain
+      var str = IHUtil.getFromKeychain(key)
+      // If the cache is not found in the keychain, try to retrieve it from local storage
+      if (str == nil) {
+         str = IHUtil.getFromLocalstorage(key)
+      }
 
-      if let str = IHUtil.getFromKeychain("\(prefix)_\(self.sdk.appId)"), let data = str.data(using: .utf8)
+      if let str = str, let data = str.data(using: .utf8)
       {
          do {
             guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
@@ -361,7 +368,15 @@ class IHUser {
       
       let str = String(data: data!, encoding: String.Encoding.utf8)
       let prefix = self.isAnonymous() ? "iaphub_user_a" : "iaphub_user"
-      _ = IHUtil.saveToKeychain(key: "\(prefix)_\(self.sdk.appId)", value: str)
+      let key = "\(prefix)_\(self.sdk.appId)"
+      
+      // Try to save to keychain first
+      let keychainErr = IHUtil.saveToKeychain(key: key, value: str)
+      // If keychain save failed, fallback to localStorage
+      if (keychainErr != nil) {
+         IHUtil.deleteFromKeychain(key: key)
+         IHUtil.saveToLocalstorage(key: key, value: str)
+      }
    }
    
    /**
