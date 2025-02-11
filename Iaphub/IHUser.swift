@@ -51,6 +51,8 @@ class IHUser {
    var isInitialized: Bool = false
    // If the login with the server is enabled
    var isServerLoginEnabled: Bool = false
+   // Indicates if the user data has been fetched from the server
+   var isServerDataFetched: Bool = false
    // Indicates if the user needs to be fetched
    var needsFetch: Bool = false
    // Latest receipt post date
@@ -459,7 +461,7 @@ class IHUser {
          }
       }
       // Add property to context if initialization detected
-      if (self.isInitialized == false) {
+      if (!self.isServerDataFetched) {
          context.properties.append(.initialization)
       }
       // Get data from API
@@ -518,6 +520,8 @@ class IHUser {
          if (NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
             isUpdated = true
          }
+         // Update isServerDataFetched
+         self.isServerDataFetched = true
          // Update ETag
          if let etag = response?.getHeader("ETag") {
             self.etag = etag
@@ -863,6 +867,7 @@ class IHUser {
       self.needsFetch = false
       self.isInitialized = false
       self.isServerLoginEnabled = false
+      self.isServerDataFetched = false
       self.etag = nil
    }
 
