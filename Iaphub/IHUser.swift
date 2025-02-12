@@ -374,7 +374,7 @@ class IHUser {
       let keychainErr = IHUtil.saveToKeychain(key: key, value: str)
       // If keychain save failed, fallback to localStorage
       if (keychainErr != nil) {
-         IHUtil.deleteFromKeychain(key: key)
+         _ = IHUtil.deleteFromKeychain(key: key)
          IHUtil.saveToLocalstorage(key: key, value: str)
       }
    }
