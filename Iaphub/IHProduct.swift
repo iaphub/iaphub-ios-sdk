@@ -21,7 +21,9 @@ import StoreKit
    @objc public var groupName: String?
    // Metadata
    @objc public var metadata: [String: String]
-   
+   // Alias
+   @objc public var alias: String?
+
    // Details source
    @objc public var details: IHProductDetails?
 
@@ -37,6 +39,7 @@ import StoreKit
       self.group = data["group"] as? String
       self.groupName = data["groupName"] as? String
       self.metadata = data["metadata"] as? [String: String] ?? [:]
+      self.alias = data["alias"] as? String
       // Call super init
       try super.init(data)
    }
@@ -60,7 +63,8 @@ import StoreKit
          "type": self.type as Any,
          "group": self.group as Any,
          "groupName": self.groupName as Any,
-         "metadata": self.metadata as Any
+         "metadata": self.metadata as Any,
+         "alias": self.alias as Any
       ]
       
       data.merge(extraData) { (current, _) in current }
