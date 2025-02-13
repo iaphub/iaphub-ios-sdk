@@ -406,12 +406,6 @@ class IHUser {
     Fetch user
    */
    func fetch(context: IHUserFetchContext, _ completion: @escaping (IHError?, Bool) -> Void) {
-      var context = context
-
-      // Get api
-      guard let api = self.api else {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), false)
-      }
       // Check if the user id is valid
       if (self.isAnonymous() == false && IHUser.isValidId(self.id) == false) {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))", params: ["userId": self.id]), false)
@@ -458,6 +452,20 @@ class IHUser {
       if (self.fetchDate == nil) {
          self.getCacheData()
       }
+      // Fetch API
+      self.fetchAPI(context: context, completeFetchRequest)
+   }
+   
+   /**
+    Fetch user from API
+   */
+   func fetchAPI(context: IHUserFetchContext, _ completion: @escaping (IHError?, Bool) -> Void) {
+      var context = context
+      
+      // Get api
+      guard let api = self.api else {
+         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), false)
+      }
       // Add property to context if active product detected
       if (!self.activeProducts.isEmpty) {
          // Check for active and expired subscriptions
@@ -479,20 +487,20 @@ class IHUser {
       if (!self.isServerDataFetched) {
          context.properties.append(.initialization)
       }
+      // Save products dictionnary
+      let productsDictionnary = self.getDictionnary(productsOnly: true)
       // Get data from API
       api.getUser(context: context, { (err, response) in
          // Update user using API data
-         self.updateFromApiData(err: err, response: response) { updateErr, isUpdated in
-            // If no update, check the filtered products for sale
-            if (isUpdated == false) {
-               self.updateFilteredProducts({ isUpdatedFromFilteredProducts in
-                  completeFetchRequest(err: updateErr, isUpdated: isUpdatedFromFilteredProducts)
-               })
+         self.updateFromApiData(err: err, response: response) { updateErr in
+            // Check if the user has been updated
+            let newProductsDictionnary = self.getDictionnary(productsOnly: true)
+            var isUpdated = false
+            if (NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
+               isUpdated = true
             }
-            // Otherwise call the completion
-            else {
-               completeFetchRequest(err: updateErr, isUpdated: isUpdated)
-            }
+            // Call completion
+            completion(updateErr, isUpdated)
          }
       })
    }
@@ -500,13 +508,16 @@ class IHUser {
    /**
     Update user using API data
    */
-   private func updateFromApiData(err: IHError?, response: IHNetworkResponse?, _ completion: @escaping (IHError?, Bool) -> Void) {
+   private func updateFromApiData(err: IHError?, response: IHNetworkResponse?, _ completion: @escaping (IHError?) -> Void) {
       var data = response?.data
-      var isUpdated = false
 
       // Handle 304 not modified
       if (response?.hasNotModified() == true) {
-         return completion(nil, isUpdated)
+         // Update all products details
+         self.updateAllProductsDetails {
+            completion(nil)
+         }
+         return
       }
       // Handle errors
       if (err != nil) {
@@ -516,24 +527,21 @@ class IHUser {
          }
          // Otherwise return an error
          else {
-            return completion(err, isUpdated)
+            // Update all products details
+            self.updateAllProductsDetails {
+               completion(err)
+            }
+            return
          }
       }
       guard let data = data else {
-         return completion(err, isUpdated)
+         return completion(err)
       }
-      // Save products dictionnary
-      let productsDictionnary = self.getDictionnary(productsOnly: true)
       // Update data
       self.update(data, {(err) in
          // Check error
          if (err != nil) {
-            return completion(err, isUpdated)
-         }
-         // Check if the user has been updated
-         let newProductsDictionnary = self.getDictionnary(productsOnly: true)
-         if (NSDictionary(dictionary: newProductsDictionnary).isEqual(to: productsDictionnary) == false) {
-            isUpdated = true
+            return completion(err)
          }
          // Update isServerDataFetched
          self.isServerDataFetched = true
@@ -542,7 +550,7 @@ class IHUser {
             self.etag = etag
          }
          // Call completion
-         completion(nil, isUpdated)
+         completion(nil)
       })
    }
    
@@ -639,30 +647,24 @@ class IHUser {
    }
    
    /**
-    Update filtered products
+    Update all products details
    */
-   func updateFilteredProducts(_ completion: @escaping (Bool) -> Void) {
-      // Call completion on empty array
-      if (self.filteredProductsForSale.isEmpty) {
-         return completion(false)
-      }
+   func updateAllProductsDetails(_ completion: @escaping () -> Void) {
+      let products = self.productsForSale + self.activeProducts + self.filteredProductsForSale
+
       // Update products details
-      self.updateProductsDetails(self.filteredProductsForSale) {
+      self.updateProductsDetails(products) {
          // Detect recovered products
          let recoveredProducts = self.filteredProductsForSale.filter({product in product.details != nil})
-         // Add to list of products for sale
-         self.productsForSale = self.productsForSale + recoveredProducts
-         // Update filtered products for sale
-         self.filteredProductsForSale = self.filteredProductsForSale.filter({product in product.details == nil})
-         // If we recovered products
+         
          if (!recoveredProducts.isEmpty) {
-            // Call completion
-            completion(true)
+            // Add to list of products for sale
+            self.productsForSale = self.productsForSale + recoveredProducts
+            // Update filtered products for sale
+            self.filteredProductsForSale = self.filteredProductsForSale.filter({product in product.details == nil})
          }
-         // Otherwise just call the completion
-         else {
-            completion(false)
-         }
+         // Call completion
+         completion()
       }
    }
    
@@ -701,18 +703,6 @@ class IHUser {
             (self.receiptPostDate != nil && self.receiptPostDate! > self.fetchDate!)
       ) {
          shouldFetch = true
-      }
-      // Update products details if we have filtered products
-      if (!shouldFetch && !self.filteredProductsForSale.isEmpty) {
-         self.updateFilteredProducts { isUpdated in
-            // Trigger onUserUpdate on update
-            if (isUpdated) {
-               self.onUserUpdate?()
-            }
-            // Call completion
-            completion?(nil, false, isUpdated)
-         }
-         return
       }
       // Otherwise no need to fetch the user
       if (!shouldFetch) {
