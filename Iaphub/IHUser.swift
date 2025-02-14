@@ -47,6 +47,8 @@ class IHUser {
    var isRestoring: Bool = false
    // Indicates the user is logging in
    var isLoggingIn: Bool = false
+   // Indicates if the filtered products are currently being updated
+   var isUpdatingFilteredProducts: Bool = false
    // Indicates the user is initialized
    var isInitialized: Bool = false
    // If the login with the server is enabled
@@ -65,6 +67,8 @@ class IHUser {
    var productsDetailsError: IHError? = nil
    // Purchase intent
    var purchaseIntent: String? = nil
+   // Update queue
+   var updateQueue = DispatchQueue(label: "com.iaphub.updateQueue")
 
 
    init(id: String?, sdk: Iaphub, enableDeferredPurchaseListener: Bool = true, onUserUpdate: (() -> Void)?, onDeferredPurchase: ((IHReceiptTransaction) -> Void)?) {
@@ -406,54 +410,56 @@ class IHUser {
     Fetch user
    */
    func fetch(context: IHUserFetchContext, _ completion: @escaping (IHError?, Bool) -> Void) {
-      // Check if the user id is valid
-      if (self.isAnonymous() == false && IHUser.isValidId(self.id) == false) {
-         return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))", params: ["userId": self.id]), false)
-      }
-      // Add completion to the requests
-      self.fetchRequests.append(completion)
-      // Stop here if the user is currently being fetched
-      if (self.isFetching) {
-         return
-      }
-      self.isFetching = true
-      // Method to complete fetch request
-      func completeFetchRequest(err: IHError?, isUpdated: Bool) {
-         let fetchRequests = self.fetchRequests
-         
-         // Clean requests
-         self.fetchRequests = []
-         // Update properties
-         self.isFetching = false
-         // If there is no error
-         if (err == nil) {
-            // Update fetch date
-            self.fetchDate = Date()
-            // Save data
-            self.saveCacheData()
+      self.updateQueue.async {
+         // Check if the user id is valid
+         if (self.isAnonymous() == false && IHUser.isValidId(self.id) == false) {
+            return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.user_id_invalid, message: "fetch failed, (user id: \(self.id))", params: ["userId": self.id]), false)
          }
-         // If we have a fetchDate mark the user as initialized
-         let isInitialized = self.isInitialized
-         if (self.fetchDate != nil && isInitialized == false) {
-            self.isInitialized = true
+         // Add completion to the requests
+         self.fetchRequests.append(completion)
+         // Stop here if the user is currently being fetched
+         if (self.isFetching) {
+            return
          }
-         // Call requests with the error
-         var requestIsUpdated = isUpdated
-         fetchRequests.forEach({ (request) in
-            request(err, requestIsUpdated)
-            // Only mark as updated for the first request
-            if (requestIsUpdated && isInitialized == true) {
-               requestIsUpdated = false
-               self.onUserUpdate?()
+         self.isFetching = true
+         // Method to complete fetch request
+         func completeFetchRequest(err: IHError?, isUpdated: Bool) {
+            let fetchRequests = self.fetchRequests
+            
+            // Clean requests
+            self.fetchRequests = []
+            // Update properties
+            self.isFetching = false
+            // If there is no error
+            if (err == nil) {
+               // Update fetch date
+               self.fetchDate = Date()
+               // Save data
+               self.saveCacheData()
             }
-         })
+            // If we have a fetchDate mark the user as initialized
+            let isInitialized = self.isInitialized
+            if (self.fetchDate != nil && isInitialized == false) {
+               self.isInitialized = true
+            }
+            // Call requests with the error
+            var requestIsUpdated = isUpdated
+            fetchRequests.forEach({ (request) in
+               request(err, requestIsUpdated)
+               // Only mark as updated for the first request
+               if (requestIsUpdated && isInitialized == true) {
+                  requestIsUpdated = false
+                  self.onUserUpdate?()
+               }
+            })
+         }
+         // If fetching for the first time, try getting data from cache
+         if (self.fetchDate == nil) {
+            self.getCacheData()
+         }
+         // Fetch API
+         self.fetchAPI(context: context, completeFetchRequest)
       }
-      // If fetching for the first time, try getting data from cache
-      if (self.fetchDate == nil) {
-         self.getCacheData()
-      }
-      // Fetch API
-      self.fetchAPI(context: context, completeFetchRequest)
    }
    
    /**
@@ -669,6 +675,40 @@ class IHUser {
    }
    
    /**
+    Update filtered products
+   */
+   func updateFilteredProducts(_ completion: @escaping (Bool) -> Void) {
+      self.updateQueue.async {
+         // Check if the filtered products are currently being updated and return completion if true
+         if (self.isUpdatingFilteredProducts) {
+            return completion(false)
+         }
+         // Update property
+         self.isUpdatingFilteredProducts = true
+         // Update products details
+         self.updateProductsDetails(self.filteredProductsForSale) {
+            // Detect recovered products
+            let recoveredProducts = self.filteredProductsForSale.filter({product in product.details != nil})
+            
+            if (!recoveredProducts.isEmpty) {
+               // Add to list of products for sale
+               self.productsForSale = self.productsForSale + recoveredProducts
+               // Update filtered products for sale
+               self.filteredProductsForSale = self.filteredProductsForSale.filter({product in product.details == nil})
+               // Call completion
+               completion(true)
+            }
+            // Call completion
+            else {
+               completion(false)
+            }
+            // Update property
+            self.isUpdatingFilteredProducts = false
+         }
+      }
+   }
+   
+   /**
     Process events
    */
    func processEvents(_ events: [IHEvent]) {
@@ -703,6 +743,18 @@ class IHUser {
             (self.receiptPostDate != nil && self.receiptPostDate! > self.fetchDate!)
       ) {
          shouldFetch = true
+      }
+      // Update products details if we have filtered products
+      if (!shouldFetch && !self.filteredProductsForSale.isEmpty) {
+         self.updateFilteredProducts { isUpdated in
+            // Trigger onUserUpdate on update
+            if (isUpdated) {
+               self.onUserUpdate?()
+            }
+            // Call completion
+            completion?(nil, false, isUpdated)
+         }
+         return
       }
       // Otherwise no need to fetch the user
       if (!shouldFetch) {

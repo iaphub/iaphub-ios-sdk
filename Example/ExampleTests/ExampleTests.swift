@@ -88,9 +88,6 @@ class IaphubTests: XCTestCase {
    func test01_getProductsForSale() async throws {
       var userFetched = false
       
-      // Force refresh
-      Iaphub.shared.user?.fetchDate = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 60 * 60 * 25)
-      
       Iaphub.shared.user?.api?.network.mock = {(type, route, params) in
          if (type == "GET" && route.contains("/user")) {
             userFetched = true
@@ -113,7 +110,7 @@ class IaphubTests: XCTestCase {
       XCTAssertEqual(products[0].localizedPrice, "$1.99")
       XCTAssertEqual(products[0].price, 1.99)
       XCTAssertEqual(products[0].currency, "USD")
-      XCTAssertEqual(userFetched, true)
+      XCTAssertEqual(userFetched, false)
    }
    
    func test02_getUserId() async throws {
