@@ -517,6 +517,10 @@ class IHUser {
    private func updateFromApiData(err: IHError?, response: IHNetworkResponse?, _ completion: @escaping (IHError?) -> Void) {
       var data = response?.data
 
+      // Update isServerDataFetched if there's no error
+      if (err == nil) {
+         self.isServerDataFetched = true
+      }
       // Handle 304 not modified
       if (response?.hasNotModified() == true) {
          // Update all products details
@@ -529,6 +533,7 @@ class IHUser {
       if (err != nil) {
          // Clear products if the platform is disabled
          if let err = err, err.code == "server_error" && err.subcode == "platform_disabled" {
+            self.isServerDataFetched = true
             data = ["productsForSale": [], "activeProducts": []]
          }
          // Otherwise return an error
@@ -549,8 +554,6 @@ class IHUser {
          if (err != nil) {
             return completion(err)
          }
-         // Update isServerDataFetched
-         self.isServerDataFetched = true
          // Update ETag
          if let etag = response?.getHeader("ETag") {
             self.etag = etag
