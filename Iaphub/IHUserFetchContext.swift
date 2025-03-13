@@ -17,6 +17,10 @@ enum IHUserFetchContextProperty: String {
    case with_active_subscription = "was" // The user has an active subscription
    case with_expired_subscription = "wes" // The user has an expired subscription
    case with_active_non_consumable = "wanc" // The user has an active non consumable
+   case last_fetch_under_ten_seconds = "lfu10s"
+   case last_fetch_under_one_minute = "lfu1m"
+   case last_fetch_under_one_hour = "lfu1h"
+   case last_fetch_under_one_day = "lfu1d"
    case on_foreground = "ofg" // Occured when the app went to foreground
    case initialization = "init" // Occurred on the user's first fetch call
 }

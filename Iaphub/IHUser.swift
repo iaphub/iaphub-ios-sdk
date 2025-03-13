@@ -493,6 +493,23 @@ class IHUser {
       if (!self.isServerDataFetched) {
          context.properties.append(.initialization)
       }
+      // Add last fetch context
+      if let fetchDate = self.fetchDate {
+         let timeSinceLastFetch = Date().timeIntervalSince(fetchDate)
+         
+         if timeSinceLastFetch < 10 {
+            context.properties.append(.last_fetch_under_ten_seconds)
+         }
+         else if timeSinceLastFetch < 60 {
+            context.properties.append(.last_fetch_under_one_minute)
+         }
+         else if timeSinceLastFetch < 3600 {
+            context.properties.append(.last_fetch_under_one_hour)
+         }
+         else if timeSinceLastFetch < 86400 {
+            context.properties.append(.last_fetch_under_one_day)
+         }
+      }
       // Save products dictionnary
       let productsDictionnary = self.getDictionnary(productsOnly: true)
       // Get data from API
