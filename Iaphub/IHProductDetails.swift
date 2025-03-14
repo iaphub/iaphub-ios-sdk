@@ -17,7 +17,7 @@ public class IHProductDetails: NSObject, IHParsable {
    // Product description
    @objc public var localizedDescription: String?
    // Product price
-   @objc public var price: Double = 0
+   @objc public var price: NSNumber?
    // Product currency
    @objc public var currency: String?
    // Product localized price
@@ -41,7 +41,7 @@ public class IHProductDetails: NSObject, IHParsable {
       self.sku = sku;
       self.localizedTitle = data["localizedTitle"] as? String
       self.localizedDescription = data["localizedDescription"] as? String
-      self.price = data["price"] as? Double ?? 0
+      self.price = data["price"] as? NSNumber
       self.currency = data["currency"] as? String
       self.localizedPrice = data["localizedPrice"] as? String
       self.subscriptionDuration = data["subscriptionDuration"] as? String
@@ -64,18 +64,25 @@ public class IHProductDetails: NSObject, IHParsable {
    }
    
    public func setDetails(_ details: IHProductDetails) {
-      // Update localized title if not already defined by the parent object
+      // Update properties if not already defined by the parent object (with data coming from the API)
       if (self.localizedTitle == nil) {
          self.localizedTitle = details.localizedTitle
       }
-      // Update localized description if not already defined by the parent object
       if (self.localizedDescription == nil) {
          self.localizedDescription = details.localizedDescription
       }
-      self.price = details.price
-      self.currency = details.currency
-      self.localizedPrice = details.localizedPrice
-      self.subscriptionDuration = details.subscriptionDuration
+      if (self.price == nil) {
+         self.price = details.price
+      }
+      if (self.currency == nil) {
+         self.currency = details.currency
+      }
+      if (self.localizedPrice == nil) {
+         self.localizedPrice = details.localizedPrice
+      }
+      if (self.subscriptionDuration == nil) {
+         self.subscriptionDuration = details.subscriptionDuration
+      }
       self.subscriptionIntroPhases = details.subscriptionIntroPhases
    }
 

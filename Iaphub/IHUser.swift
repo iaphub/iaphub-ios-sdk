@@ -1039,11 +1039,11 @@ class IHUser {
          receipt.pricings = (productsDetails ?? []).compactMap { (productDetails: IHProductDetails) -> IHProductPricing? in
             let product = allProducts.first(where: {$0.sku == productDetails.sku})
             
-            if let currency = productDetails.currency, productDetails.price != 0 {
+            if let currency = productDetails.currency, let price = productDetails.price {
                return IHProductPricing(
                   id: product?.id,
                   sku: productDetails.sku,
-                  price: productDetails.price,
+                  price: price.doubleValue,
                   currency: currency,
                   introPrice: productDetails.subscriptionIntroPhases?.first?.price
                )
