@@ -453,7 +453,7 @@ import UIKit
       }
       // Refresh user (only if it has already been fetched)
       if let user = self.user, user.isInitialized == true {
-         user.refresh(context: IHUserFetchContext(source: .products, properties: [.on_foreground]))
+         user.refresh(context: IHUserFetchContext(source: .products, properties: [.on_foreground]), interval: 2)
       }
    }
    
