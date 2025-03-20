@@ -234,7 +234,7 @@ class IHNetwork {
                return completion(nil, networkResponse)
             }
             // Return error if we did not receive a 200 status code
-            if (!networkResponse.hasSuccessStatusCode() == true) {
+            if (networkResponse.hasSuccessStatusCode() == false) {
                return completion(IHError(IHErrors.network_error, IHNetworkErrors.status_code_error, params: infos, silent: true), networkResponse)
             }
             // Check we have a response

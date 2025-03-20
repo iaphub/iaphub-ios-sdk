@@ -538,7 +538,7 @@ class IHUser {
       if (err == nil) {
          self.isServerDataFetched = true
       }
-      // Handle errors or 304 modified
+      // Handle errors or 304 not modified
       if (err != nil || response?.hasNotModifiedStatusCode() == true) {
          // Clear products if the platform is disabled
          if let err = err, err.code == "server_error" && err.subcode == "platform_disabled" {
