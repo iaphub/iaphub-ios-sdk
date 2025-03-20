@@ -23,13 +23,23 @@ struct IHNetworkResponse {
             return response.allHeaderFields[name] as? String
         }
     }
-   
-   func hasInternalError() -> Bool {
-      return (self.httpResponse?.statusCode ?? 0) >= 500
+
+   func hasSuccessStatusCode() -> Bool {
+      return (self.httpResponse?.statusCode ?? 0) == 200
    }
    
-   func hasNotModified() -> Bool {
+   func hasNotModifiedStatusCode() -> Bool {
       return (self.httpResponse?.statusCode ?? 0) == 304
+   }
+
+   func hasTooManyRequestsStatusCode() -> Bool {
+      return (self.httpResponse?.statusCode ?? 0) == 429
+   }
+
+   func hasServerErrorStatusCode() -> Bool {
+      let statusCode = (self.httpResponse?.statusCode ?? 0)
+
+      return statusCode >= 500 && statusCode < 600
    }
 }
 
@@ -85,12 +95,12 @@ class IHNetwork {
          delay: 1,
          task: { (callback) in
             self.sendRequest(type: type, route: route, params: params, headers: headers, timeout: timeout) { (err, networkResponse) in
-               // Retry request if the request failed with a network error
-               if (err?.code == "network_error") {
+               // Retry request if we have no response
+               if (networkResponse == nil) {
                   callback(true, err, networkResponse)
                }
-               // Retry request if the request failed with status code >= 500
-               else if (networkResponse?.hasInternalError() == true) {
+               // Retry request if we have a 5XX status code
+               else if (networkResponse?.hasServerErrorStatusCode() == true) {
                   callback(true, err, networkResponse)
                }
                // Otherwise do not retry
@@ -103,7 +113,7 @@ class IHNetwork {
             let networkResponse = networkResponse as? IHNetworkResponse
             
             // Send error if there is one
-            if (err != nil && silentLog != true) {
+            if (err != nil && silentLog != true && networkResponse?.hasTooManyRequestsStatusCode() != true) {
                err?.send()
             }
             // Call completion
@@ -215,14 +225,18 @@ class IHNetwork {
             guard let httpResponse = response as? HTTPURLResponse else {
                return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_invalid, params: infos, silent: true), nil)
             }
+            // Add status code to infos
+            infos["statusCode"] = "\(httpResponse.statusCode)"
             // Create network response
             var networkResponse = IHNetworkResponse(data: nil, httpResponse: httpResponse)
             // Return response on not modified status code
-            if (networkResponse.hasNotModified()) {
+            if (networkResponse.hasNotModifiedStatusCode() == true) {
                return completion(nil, networkResponse)
             }
-            // Add status code to infos
-            infos["statusCode"] = "\(httpResponse.statusCode)"
+            // Return error if we did not receive a 200 status code
+            if (!networkResponse.hasSuccessStatusCode() == true) {
+               return completion(IHError(IHErrors.network_error, IHNetworkErrors.status_code_error, params: infos, silent: true), networkResponse)
+            }
             // Check we have a response
             guard let data = data else {
                return completion(IHError(IHErrors.network_error, IHNetworkErrors.response_empty, params: infos, silent: true), networkResponse)

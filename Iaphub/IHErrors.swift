@@ -71,6 +71,7 @@ enum IHNetworkErrors : String, IHErrorProtocol {
    case response_invalid = "response invalid"
    case response_empty = "response empty"
    case response_parsing_failed = "response parsing failed"
+   case status_code_error = "status code error"
    case unknown_exception = "unknown exception"
 
    var code: String {
