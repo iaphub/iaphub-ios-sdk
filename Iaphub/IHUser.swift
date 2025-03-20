@@ -472,27 +472,6 @@ class IHUser {
       guard let api = self.api else {
          return completion(IHError(IHErrors.unexpected, IHUnexpectedErrors.api_not_found, message: "fetch failed"), false)
       }
-      // Add property to context if active product detected
-      if (!self.activeProducts.isEmpty) {
-         // Check for active and expired subscriptions
-         let subscriptions = self.activeProducts.filter({ $0.type.contains("subscription") && $0.expirationDate != nil })
-         // Add active subscription property if any subscription is active
-         if subscriptions.contains(where: { $0.expirationDate! > Date() }) {
-            context.properties.append(.with_active_subscription)
-         }
-         // Add expired subscription property if any subscription is expired
-         if subscriptions.contains(where: { $0.expirationDate! <= Date() }) {
-            context.properties.append(.with_expired_subscription)
-         }
-         // Add active non consumable property if any non consumable is active
-         if self.activeProducts.contains(where: { $0.type == "non_consumable" }) {
-            context.properties.append(.with_active_non_consumable)
-         }
-      }
-      // Add property to context if initialization detected
-      if (!self.isServerDataFetched) {
-         context.properties.append(.initialization)
-      }
       // Add last fetch context
       if let fetchDate = self.fetchDate {
          let timeSinceLastFetch = Date().timeIntervalSince(fetchDate)
@@ -508,6 +487,27 @@ class IHUser {
          }
          else if timeSinceLastFetch < 86400 {
             context.properties.append(.last_fetch_under_one_day)
+         }
+      }
+      // Add property to context if initialization detected
+      if (!self.isServerDataFetched) {
+         context.properties.append(.initialization)
+      }
+      // Add property to context if active product detected
+      if (!self.activeProducts.isEmpty) {
+         // Check for active and expired subscriptions
+         let subscriptions = self.activeProducts.filter({ $0.type.contains("subscription") && $0.expirationDate != nil })
+         // Add active subscription property if any subscription is active
+         if subscriptions.contains(where: { $0.expirationDate! > Date() }) {
+            context.properties.append(.with_active_subscription)
+         }
+         // Add expired subscription property if any subscription is expired
+         if subscriptions.contains(where: { $0.expirationDate! <= Date() }) {
+            context.properties.append(.with_expired_subscription)
+         }
+         // Add active non consumable property if any non consumable is active
+         if self.activeProducts.contains(where: { $0.type == "non_consumable" }) {
+            context.properties.append(.with_active_non_consumable)
          }
       }
       // Save products dictionnary
