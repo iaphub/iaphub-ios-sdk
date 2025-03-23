@@ -26,6 +26,8 @@ class IHUser {
    var fetchDate: Date? = nil
    // ETag
    var etag: String? = nil
+   // Foreground refresh interval
+   var foregroundRefreshInterval: Double? = nil
 
    // SDK
    var sdk: Iaphub
@@ -303,6 +305,7 @@ class IHUser {
          dictionnary["isServerLoginEnabled"] = self.isServerLoginEnabled
          dictionnary["filteredProductsForSale"] = self.filteredProductsForSale.map({(product) in product.getDictionary()})
          dictionnary["cacheVersion"] = IHConfig.cacheVersion
+         dictionnary["foregroundRefreshInterval"] = self.foregroundRefreshInterval
       }
       return dictionnary
    }
@@ -342,6 +345,7 @@ class IHUser {
                self.isServerLoginEnabled = json["isServerLoginEnabled"] as? Bool ?? false
                self.paywallId = json["paywallId"] as? String
                self.etag = json["etag"] as? String
+               self.foregroundRefreshInterval = json["foregroundRefreshInterval"] as? Double
             }
          }
          catch {
@@ -534,9 +538,18 @@ class IHUser {
    private func updateFromApiData(err: IHError?, response: IHNetworkResponse?, _ completion: @escaping (IHError?) -> Void) {
       var data = response?.data
 
-      // Update isServerDataFetched if there's no error
+      // If there is no error
       if (err == nil) {
+         // Update isServerDataFetched
          self.isServerDataFetched = true
+         // Update ETag
+         if let etag = response?.getHeader("ETag") {
+            self.etag = etag
+         }
+         // Update foreground refresh interval
+         if let foregroundRefreshInterval = response?.getHeader("X-Foreground-Refresh-Interval") {
+            self.foregroundRefreshInterval = Double(foregroundRefreshInterval)
+         }
       }
       // Handle errors or 304 not modified
       if (err != nil || response?.hasNotModifiedStatusCode() == true) {
@@ -562,10 +575,6 @@ class IHUser {
          // Check error
          if (err != nil) {
             return completion(err)
-         }
-         // Update ETag
-         if let etag = response?.getHeader("ETag") {
-            self.etag = etag
          }
          // Call completion
          completion(nil)
@@ -802,22 +811,28 @@ class IHUser {
    }
    
    /**
-    Refresh user with a shorter interval if the user has an active subscription (otherwise every 24 hours by default)
+    Refresh user with a dynamic interval
    */
    func refresh(context: IHUserFetchContext, _ completion: ((IHError?, Bool, Bool) -> Void)? = nil) {
+      var interval: Double = 86400 // 24 hours by default
+      
+      // If this is an on foreground refresh, use the foreground refresh interval if defined
+      if context.properties.contains(.on_foreground), let foregroundRefreshInterval = self.foregroundRefreshInterval {
+         interval = foregroundRefreshInterval
+      }
       // Refresh user
-      self.refresh(context: context, interval: 60 * 60 * 24, { (err, isFetched, isUpdated) in
+      self.refresh(context: context, interval: interval, { (err, isFetched, isUpdated) in
          // Check if there is an error
          guard err == nil else {
             completion?(err, isFetched, isUpdated)
             return
          }
-         // If the user has not been fetched, look if there is active subscriptions
-         if (isFetched == false) {
+         // If the user has not been fetched and the interval is over 60s, check for active subscriptions
+         if (isFetched == false && interval > 60) {
             let subscriptions = self.activeProducts.filter { (product) in
                return product.type == "renewable_subscription" || product.type == "subscription";
             }
-            // If we have active renewable subscriptions, refresh every minute
+            // If there are active subscriptions, refresh every minute
             if (subscriptions.count > 0) {
                self.refresh(context: context, interval: 60, completion)
             }
