@@ -783,7 +783,7 @@ class IHUser {
          return
       }
       // Otherwise fetch user
-      self.fetch(context: context, { (err, isUpdated) in
+      self.fetch(context: context.withRefreshInterval(interval), { (err, isUpdated) in
          // Check if there is an error
          if (err != nil) {
             // Return an error if the user has never been fetched

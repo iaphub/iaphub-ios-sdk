@@ -28,6 +28,7 @@ enum IHUserFetchContextProperty: String {
 struct IHUserFetchContext {
    var source: IHUserFetchContextSource
    var properties: [IHUserFetchContextProperty]
+   var refreshInterval: Double?
    
    init(source: IHUserFetchContextSource, properties: [IHUserFetchContextProperty] = []) {
       self.source = source
@@ -37,5 +38,11 @@ struct IHUserFetchContext {
    func getValue() -> String {
       let components = [source.rawValue] + properties.map { $0.rawValue }
       return components.joined(separator: "/")
+   }
+   
+   func withRefreshInterval(_ interval: Double) -> IHUserFetchContext {
+      var context = self
+      context.refreshInterval = interval
+      return context
    }
 }

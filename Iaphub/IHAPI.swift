@@ -35,6 +35,10 @@ class IHAPI {
       var headers: [String: String] = [:]
       // Add context
       params["context"] = context.getValue()
+      // Add context refresh interval
+      if let refreshInterval = context.refreshInterval {
+         params["refreshInterval"] = String(format: "%.0f", refreshInterval)
+      }
       // Add If-None-Match header
       if let etag = self.user.etag {
          headers["If-None-Match"] = etag
