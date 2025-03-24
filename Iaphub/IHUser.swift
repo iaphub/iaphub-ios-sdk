@@ -486,6 +486,9 @@ class IHUser {
          else if timeSinceLastFetch < 60 {
             context.properties.append(.last_fetch_under_one_minute)
          }
+         else if timeSinceLastFetch < 600 {
+            context.properties.append(.last_fetch_under_ten_minutes)
+         }
          else if timeSinceLastFetch < 3600 {
             context.properties.append(.last_fetch_under_one_hour)
          }
